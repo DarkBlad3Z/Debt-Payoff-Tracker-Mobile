@@ -1,0 +1,2271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#f4f1ea" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#152022" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Debt Tracker">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="format-detection" content="telephone=no">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>Debt Tracker</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='28' fill='%234e806e'/%3E%3Cpath d='M21 33.5l7.5 7.5L44 25' fill='none' stroke='%23fff' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<style>
+  :root {
+    --bg: #f4f1ea;
+    --bg-glow: #dde9e2;
+    --surface: rgba(255, 255, 255, 0.66);
+    --surface-solid: #fbfaf7;
+    --text: #2b3737;
+    --muted: #5f6c69;
+    --faint: #a3adaa;
+    --line: #e2ddd2;
+    --accent: #4e806e;
+    --accent-strong: #3d6b5a;
+    --accent-light: #8dbba8;
+    --accent-soft: #d9e8e0;
+    --accent-ink: #ffffff;
+    --interest: #d49556;
+    --warn: #a85f53;
+    --warn-strong: #934f44;
+    --warn-ink: #ffffff;
+    --radius: 18px;
+    --shadow: 0 1px 2px rgba(38, 48, 46, 0.04), 0 10px 30px rgba(38, 48, 46, 0.07);
+    --font: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-num: ui-rounded, "SF Pro Rounded", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #152022;
+      --bg-glow: #1d3330;
+      --surface: rgba(255, 255, 255, 0.045);
+      --surface-solid: #1b2829;
+      --text: #e5ecea;
+      --muted: #93a29e;
+      --faint: #5f6f6c;
+      --line: #283738;
+      --accent: #86bfa9;
+      --accent-strong: #a3d3c0;
+      --accent-light: #5f9c86;
+      --accent-soft: #213c36;
+      --accent-ink: #0f1f1b;
+      --interest: #e3ab73;
+      --warn: #e09d91;
+      --warn-strong: #eab2a8;
+      --warn-ink: #2a1511;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.25), 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+  }
+
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html { -webkit-text-size-adjust: 100%; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    min-height: 100dvh;
+    font-family: var(--font);
+    font-size: 16px;
+    line-height: 1.5;
+    color: var(--text);
+    background:
+      radial-gradient(1100px 560px at 50% -10%, var(--bg-glow), transparent 70%) no-repeat,
+      var(--bg);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  .wrap {
+    width: 100%;
+    max-width: 920px;
+    margin: 0 auto;
+    padding: clamp(28px, 6vh, 64px) 22px calc(56px + env(safe-area-inset-bottom));
+  }
+  .narrow { max-width: 596px; margin-left: auto; margin-right: auto; }
+
+  .sr-only {
+    position: absolute !important;
+    width: 1px; height: 1px;
+    padding: 0; margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .eyebrow {
+    margin: 0 0 4px;
+    font-size: 12.5px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  /* ---------- Tabs ---------- */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    width: max-content;
+    max-width: 100%;
+    margin: 0 auto clamp(32px, 6vh, 56px);
+    padding: 4px;
+    overflow-x: auto;
+    border-radius: 14px;
+    background: var(--surface);
+    box-shadow: inset 0 0 0 1px var(--line);
+  }
+  .tab {
+    padding: 8px 16px;
+    border: 0;
+    border-radius: 10px;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+    color: var(--muted);
+    background: none;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
+  }
+  .tab:hover { color: var(--text); }
+  .tab[aria-selected="true"] { color: var(--text); background: var(--surface-solid); box-shadow: var(--shadow); }
+  .tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .tab-ico { display: none; line-height: 0; }
+  .tab-ico svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* Snappy taps on phones: no double-tap zoom delay, no grey flash. */
+  button, .btn, .tab, .link { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+
+  .panel-head { margin-bottom: 24px; }
+  .panel-head h2 { margin: 0; font-size: clamp(24px, 4vw, 30px); font-weight: 650; letter-spacing: -0.02em; }
+  .panel-sub { margin: 6px 0 0; color: var(--muted); }
+
+  /* ---------- The big number ---------- */
+  .hero { text-align: center; }
+
+  .big {
+    margin: 0;
+    font-family: var(--font-num);
+    font-size: clamp(44px, 15vw, 108px); /* refined by fitBig() */
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.035em;
+    line-height: 1.08;
+    white-space: nowrap;
+    color: var(--text);
+    transition: color 0.8s ease;
+  }
+  .is-done .big { color: var(--accent-strong); }
+  .big.bump { animation: bump 0.5s cubic-bezier(0.3, 0.7, 0.3, 1); }
+  .big.pop  { animation: pop 1s cubic-bezier(0.2, 0.9, 0.25, 1.15); }
+  @keyframes bump { 35% { transform: scale(0.965); } }
+  @keyframes pop  { 30% { transform: scale(1.07); } }
+
+  .progress {
+    max-width: 340px;
+    height: 6px;
+    margin: 22px auto 10px;
+    border-radius: 99px;
+    background: var(--line);
+    overflow: hidden;
+  }
+  .bar {
+    width: 0;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, var(--accent-light), var(--accent));
+    transition: width 1s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .progress-text, .sub-note {
+    margin: 0;
+    font-size: 14px;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .sub-note { margin-top: 4px; font-size: 13px; }
+  .plan-line {
+    display: inline-block;
+    margin: 14px 0 0;
+    padding: 6px 12px;
+    border-radius: 99px;
+    font-size: 13px;
+    color: var(--accent-strong);
+    background: var(--accent-soft);
+  }
+  .plan-line.cta { padding: 2px 8px; border-radius: 14px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); }
+  .plan-line.cta .link { font-size: 13px; padding: 5px 2px; }
+
+  /* ---------- Inputs & buttons ---------- */
+  .pay {
+    display: flex;
+    gap: 10px;
+    max-width: 440px;
+    margin: 40px auto 0;
+  }
+  .money { position: relative; flex: 1; min-width: 0; }
+  .money-sign {
+    position: absolute;
+    left: 16px; top: 50%;
+    transform: translateY(-50%);
+    font-size: 18px;
+    color: var(--muted);
+    pointer-events: none;
+  }
+  .money-sign.right { left: auto; right: 16px; }
+  .money input, .plain-input {
+    width: 100%;
+    height: 52px;
+    padding: 0 16px 0 33px;
+    font: inherit;
+    font-size: 18px;
+    font-variant-numeric: tabular-nums;
+    color: var(--text);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .money.pct input { padding: 0 38px 0 16px; }
+  .plain-input { padding: 0 14px; font-size: 16px; }
+  .money input::placeholder, .plain-input::placeholder { color: var(--faint); }
+  .money input:focus, .plain-input:focus { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
+  .money input[aria-invalid="true"], .plain-input[aria-invalid="true"] { border-color: var(--warn); }
+
+  .btn {
+    height: 52px;
+    padding: 0 22px;
+    border: 0;
+    border-radius: 14px;
+    font: inherit;
+    font-size: 16px;
+    font-weight: 600;
+    white-space: nowrap;
+    color: var(--accent-ink);
+    background: var(--accent);
+    cursor: pointer;
+    transition: background-color 0.2s, box-shadow 0.2s, transform 0.1s;
+  }
+  .btn:hover { background: var(--accent-strong); }
+  .btn:active { transform: translateY(1px); }
+  .btn:focus-visible,
+  .link:focus-visible,
+  .item-x:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+  .btn-quiet { color: var(--text); background: transparent; box-shadow: inset 0 0 0 1px var(--line); }
+  .btn-quiet:hover { background: var(--surface); }
+  .btn-warn { color: var(--warn-ink); background: var(--warn); }
+  .btn-warn:hover { background: var(--warn-strong); }
+  .btn-small { height: 36px; padding: 0 14px; font-size: 14px; border-radius: 10px; }
+
+  .msg {
+    min-height: 21px;
+    margin: 12px 0 0;
+    font-size: 14px;
+    text-align: center;
+    color: var(--muted);
+  }
+  .msg[data-kind="error"] { color: var(--warn); }
+  .msg[data-kind="ok"] { color: var(--accent-strong); }
+
+  .adjust-row { margin: 14px 0 0; text-align: center; font-size: 14px; }
+
+  /* ---------- Zero celebration card ---------- */
+  .done {
+    max-width: 440px;
+    margin: 40px auto 0;
+    padding: 26px 24px;
+    text-align: center;
+    border-radius: var(--radius);
+    background: var(--surface);
+    box-shadow: var(--shadow);
+  }
+  .done:focus { outline: none; }
+  .done-title { margin: 0; font-size: 22px; font-weight: 650; letter-spacing: -0.01em; }
+  .done-text { margin: 6px 0 20px; color: var(--muted); }
+  .done-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+  .done-actions .btn { height: 44px; }
+
+  /* ---------- Payment history ---------- */
+  .history { margin-top: 56px; }
+  .history-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding: 0 48px 10px 4px;
+    border-bottom: 1px solid var(--line);
+  }
+  .history-head h2 { margin: 0; font-size: 15px; font-weight: 600; }
+  .history-head h2:focus { outline: none; }
+  .count { font-size: 13px; color: var(--muted); }
+  .history-list { margin: 0; padding: 0; list-style: none; }
+
+  .item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 62px;
+    padding: 12px 4px;
+    border-bottom: 1px solid var(--line);
+  }
+  /* Amount and date share the first line (date right-aligned); an adjustment's note sits underneath. */
+  .item-main {
+    flex: 1;
+    min-width: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: baseline;
+    gap: 2px 16px;
+  }
+  .item-left { display: contents; }
+  .item-amt { grid-column: 1; grid-row: 1; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--accent-strong); }
+  .item-amt.adj { color: var(--interest); }
+  .item-note { grid-column: 1 / -1; grid-row: 2; font-size: 13px; color: var(--muted); }
+  .item-when { grid-column: 2; grid-row: 1; text-align: right; white-space: nowrap; font-size: 14px; color: var(--muted); }
+  @media (max-width: 380px) { .item-when { font-size: 13px; } }
+  .item-x {
+    flex: none;
+    width: 32px; height: 32px;
+    border: 0;
+    border-radius: 50%;
+    font: inherit;
+    font-size: 20px;
+    line-height: 1;
+    color: var(--muted);
+    background: transparent;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.2s, color 0.2s, background-color 0.2s;
+  }
+  .item:hover .item-x,
+  .item-x:focus-visible { opacity: 1; }
+  @media (hover: none) { .item-x { opacity: 0.7; } }
+  .item-x:hover { color: var(--warn); background: var(--surface); }
+  .item.flash { animation: flash 2s ease-out; }
+  @keyframes flash { from { background-color: var(--accent-soft); } }
+  .item.confirming { flex-wrap: wrap; justify-content: space-between; }
+  .item-q { font-size: 14px; }
+  .item-actions { display: flex; gap: 8px; }
+
+  .empty {
+    margin: 0;
+    padding: 28px 0 6px;
+    font-size: 14px;
+    text-align: center;
+    color: var(--muted);
+  }
+
+  /* ---------- Footer ---------- */
+  .foot {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 4px 10px;
+    margin-top: 44px;
+    font-size: 13px;
+    color: var(--faint);
+  }
+  .link {
+    padding: 4px 2px;
+    border: 0;
+    border-radius: 6px;
+    font: inherit;
+    color: var(--muted);
+    background: none;
+    cursor: pointer;
+  }
+  .link:hover { color: var(--text); text-decoration: underline; text-underline-offset: 3px; }
+  .link.accent { color: var(--accent-strong); font-weight: 600; }
+
+  /* ---------- Cards, stats, tables ---------- */
+  .card {
+    padding: 20px;
+    border-radius: var(--radius);
+    background: var(--surface);
+    box-shadow: inset 0 0 0 1px var(--line);
+  }
+  .card + .card, .card + .stats, .stats + .card, .stats + .table-wrap, .card + .table-wrap { margin-top: 16px; }
+  .card h3 { margin: 0 0 12px; font-size: 16px; font-weight: 650; }
+  .card.warn { box-shadow: inset 0 0 0 1px var(--warn); }
+  .card.center { text-align: center; padding: 36px 24px; }
+  .card.center p { margin: 0 0 16px; color: var(--muted); }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+  }
+  .stat {
+    padding: 14px 16px;
+    border-radius: 14px;
+    background: var(--surface);
+    box-shadow: inset 0 0 0 1px var(--line);
+  }
+  .stat-label { margin: 0; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .stat-value { margin: 4px 0 0; font-family: var(--font-num); font-size: 22px; font-weight: 650; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+  .stat-sub { margin: 2px 0 0; font-size: 13px; color: var(--muted); }
+  .stat.hl .stat-value { color: var(--interest); }
+
+  .breakdown { margin: 0; display: grid; grid-template-columns: 1fr auto; gap: 0; font-variant-numeric: tabular-nums; }
+  .breakdown dt, .breakdown dd { margin: 0; padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .breakdown dt { color: var(--muted); }
+  .breakdown dd { text-align: right; font-weight: 600; }
+  .breakdown dt:last-of-type, .breakdown dd:last-of-type { border-bottom: 0; }
+  .breakdown .int { color: var(--interest); }
+  .breakdown .prin { color: var(--accent-strong); }
+
+  .result-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 16px; margin-top: 8px; }
+  .result-grid .stats { align-content: start; }
+  .goto-row { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 14px; font-size: 14px; }
+
+  .table-wrap {
+    max-height: 70vh;
+    overflow: auto;
+    border-radius: 14px;
+    background: var(--surface);
+    box-shadow: inset 0 0 0 1px var(--line);
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
+  th, td { padding: 10px 14px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--line); }
+  th:nth-child(-n+2), td:nth-child(-n+2) { text-align: left; }
+  td:first-child { color: var(--muted); }
+  thead th {
+    position: sticky; top: 0; z-index: 1;
+    font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--muted);
+    background: var(--surface-solid);
+  }
+  tbody tr.yr td { border-top: 2px solid var(--line); }
+  @media (hover: hover) { tbody tr:hover td { background: var(--accent-soft); } }
+  td.int { color: var(--interest); }
+  td.prin { color: var(--accent-strong); }
+  tfoot td { position: sticky; bottom: 0; font-weight: 650; background: var(--surface-solid); border-bottom: 0; border-top: 1px solid var(--line); }
+  .fine-print { margin: 12px 0 0; font-size: 13px; color: var(--muted); }
+
+  /* ---------- Calculator form ---------- */
+  .calc-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 16px;
+    padding: 20px;
+    border-radius: var(--radius);
+    background: var(--surface);
+    box-shadow: inset 0 0 0 1px var(--line);
+  }
+  .field label { display: block; margin-bottom: 6px; font-size: 13px; font-weight: 600; color: var(--muted); }
+  .field-note { min-height: 20px; margin: 6px 0 0; font-size: 12.5px; color: var(--muted); }
+  #calc-msg { text-align: left; margin-bottom: 8px; }
+
+  /* ---------- Charts ---------- */
+  .chart-card { position: relative; }
+  .chart-card + .chart-card { margin-top: 16px; }
+  .chart-card svg { display: block; width: 100%; height: auto; overflow: visible; touch-action: pan-y; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 0 0 10px; font-size: 13px; color: var(--muted); }
+  .key { display: inline-flex; align-items: center; gap: 6px; }
+  .swatch { width: 14px; height: 10px; border-radius: 3px; }
+  .swatch.line { height: 3px; border-radius: 2px; }
+  .swatch.dash { height: 0; border-top: 3px dashed var(--accent); background: none; border-radius: 0; }
+  .g-grid { stroke: var(--line); stroke-width: 1; }
+  .g-axis { fill: var(--muted); font-size: 12px; font-family: var(--font); }
+  .g-area { fill: var(--accent-soft); opacity: 0.8; }
+  .g-proj { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-dasharray: 7 5; stroke-linejoin: round; }
+  .g-actual { fill: none; stroke: var(--text); stroke-width: 2.5; stroke-linejoin: round; }
+  .g-dot { fill: var(--text); }
+  .g-today { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 4; }
+  .g-hover { fill: var(--surface-solid); stroke: var(--accent-strong); stroke-width: 2.5; }
+  .g-prin { fill: var(--accent); }
+  .g-int { fill: var(--interest); }
+  .g-band { fill: var(--text); opacity: 0.06; }
+  .tip {
+    position: absolute;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    font-size: 13px;
+    white-space: nowrap;
+    color: var(--muted);
+    background: var(--surface-solid);
+    box-shadow: var(--shadow), inset 0 0 0 1px var(--line);
+    pointer-events: none;
+    transform: translate(-50%, calc(-100% - 12px));
+  }
+  .tip strong { color: var(--text); font-variant-numeric: tabular-nums; }
+
+  /* ---------- First-run setup ---------- */
+  .setup { text-align: center; padding-top: 6vh; }
+  .setup-title {
+    max-width: 13em;
+    margin: 6px auto 0;
+    font-size: clamp(28px, 6vw, 40px);
+    font-weight: 650;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+  .setup .pay { margin-top: 32px; }
+  .fine { margin: 26px 0 0; font-size: 13px; color: var(--muted); }
+
+  .note {
+    max-width: 520px;
+    margin: 0 auto 32px;
+    padding: 12px 16px;
+    border-radius: 12px;
+    font-size: 14px;
+    text-align: center;
+    color: var(--text);
+    background: var(--surface);
+    box-shadow: inset 0 0 0 1px var(--line);
+  }
+
+  /* ---------- Confetti ---------- */
+  .confetti {
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    display: none;
+    pointer-events: none;
+  }
+  .confetti.on { display: block; }
+
+  /* ---------- Dialogs ---------- */
+  dialog {
+    width: min(420px, calc(100vw - 32px));
+    max-height: calc(100dvh - 32px);
+    overflow: auto;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius);
+    color: var(--text);
+    background: var(--surface-solid);
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.22);
+  }
+  dialog::backdrop { background: rgba(18, 28, 26, 0.38); }
+  .dialog-body { padding: 24px; }
+  .dialog-body h3 { margin: 0; font-size: 19px; font-weight: 650; }
+  .dialog-text { margin: 6px 0 18px; font-size: 15px; color: var(--muted); }
+  .dialog-body .msg { text-align: left; }
+  .dialog-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 14px; }
+  .dialog-actions .btn { height: 44px; }
+
+  /* ---------- Small screens & touch ---------- */
+  @media (max-width: 720px) {
+    .result-grid { grid-template-columns: 1fr; }
+  }
+
+  /* Touch screens: bigger targets (44px) for the small controls. */
+  @media (hover: none) {
+    .item-x { width: 44px; height: 44px; }
+    .history-head { padding-right: 60px; }
+  }
+
+  /* Phones */
+  @media (max-width: 600px) {
+    .wrap { padding: 28px 16px calc(100px + env(safe-area-inset-bottom)); }
+
+    /* Tabs become an app-style bar along the bottom, within thumb reach. */
+    .tabs {
+      position: fixed;
+      left: 0; right: 0; bottom: 0;
+      z-index: 30;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 4px;
+      width: auto;
+      max-width: none;
+      margin: 0;
+      padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+      overflow: visible;
+      border-radius: 0;
+      background: var(--surface-solid);
+      background: color-mix(in srgb, var(--surface-solid) 90%, transparent);
+      -webkit-backdrop-filter: saturate(1.4) blur(14px);
+      backdrop-filter: saturate(1.4) blur(14px);
+      box-shadow: 0 -1px 0 var(--line);
+    }
+    .tab {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      min-height: 54px;
+      padding: 6px 2px;
+      border-radius: 12px;
+      font-size: 11.5px;
+    }
+    .tab[aria-selected="true"] { color: var(--accent-strong); background: var(--accent-soft); box-shadow: none; }
+    .tab-ico { display: block; }
+
+    .pay { flex-direction: column; margin-top: 32px; }
+    .pay .btn { width: 100%; }
+    .adjust-row .link, .foot .link { padding: 10px 6px; }
+    .foot { gap: 0 2px; margin-top: 32px; }
+    .history { margin-top: 44px; }
+    .done-actions .btn { flex: 1 1 100%; }
+
+    .panel-head { margin-bottom: 18px; }
+    .card { padding: 16px; }
+    .calc-grid { grid-template-columns: 1fr; padding: 16px; gap: 14px; }
+    .stats { gap: 10px; }
+    .stat { padding: 12px 14px; }
+    .stat-value { font-size: 20px; }
+    .breakdown dt, .breakdown dd { padding: 11px 0; }
+    .goto-row .link { padding: 8px 2px; }
+
+    /* The schedule becomes one small card per month instead of a wide table. */
+    .table-wrap { max-height: none; overflow: visible; border-radius: 0; background: none; box-shadow: none; }
+    .table-wrap table, .table-wrap tbody, .table-wrap tfoot { display: block; }
+    .table-wrap thead { display: none; }
+    .table-wrap tr {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      row-gap: 8px;
+      margin-bottom: 8px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: var(--surface);
+      box-shadow: inset 0 0 0 1px var(--line);
+    }
+    .table-wrap td { display: block; padding: 0; border: 0 !important; background: none !important; white-space: nowrap; }
+    .table-wrap td:nth-child(1), .table-wrap td:nth-child(3) { display: none; }
+    .table-wrap td:nth-child(2) { order: 1; flex: 1 1 50%; text-align: left; font-weight: 600; color: var(--text); }
+    .table-wrap td:nth-child(7) { order: 2; flex: 1 1 50%; text-align: right; font-weight: 650; }
+    .table-wrap td:nth-child(4) { order: 3; flex: 1 1 33%; text-align: left; }
+    .table-wrap td:nth-child(5) { order: 4; flex: 1 1 33%; text-align: center; }
+    .table-wrap td:nth-child(6) { order: 5; flex: 1 1 33%; text-align: right; }
+    .table-wrap td[data-label]::before {
+      content: attr(data-label);
+      display: block;
+      margin-bottom: 1px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .table-wrap tfoot td { position: static; }
+    .table-wrap tfoot tr { box-shadow: inset 0 0 0 1.5px var(--accent-light); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <p id="storage-note" class="note" role="note" hidden>
+    This page can't save here, so your numbers will reset when you close it.
+    Open it directly in Chrome, Safari, Edge or Firefox to keep your progress.
+  </p>
+
+  <noscript><p class="note">This tracker needs JavaScript turned on.</p></noscript>
+
+  <!-- First run: set the starting total -->
+  <section id="setup" class="setup narrow" hidden aria-labelledby="setup-title">
+    <p class="eyebrow">Debt tracker</p>
+    <h1 id="setup-title" class="setup-title">How much do you owe in total?</h1>
+    <form id="setup-form" class="pay" novalidate autocomplete="off">
+      <label class="sr-only" for="setup-amount">Total amount owed</label>
+      <div class="money">
+        <span class="money-sign" aria-hidden="true">$</span>
+        <input id="setup-amount" type="text" inputmode="decimal" placeholder="0.00" enterkeyhint="go" aria-describedby="setup-msg">
+      </div>
+      <button type="submit" class="btn">Start tracking</button>
+    </form>
+    <p id="setup-msg" class="msg" role="status" aria-live="polite"></p>
+    <p class="fine">Everything stays in this browser. Nothing is sent anywhere.</p>
+  </section>
+
+  <div id="app" hidden>
+    <h1 class="sr-only">Debt tracker</h1>
+
+    <nav class="tabs" role="tablist" aria-label="Views">
+      <button type="button" class="tab" role="tab" id="tab-tracker" data-tab="tracker" aria-controls="panel-tracker" aria-selected="true">
+        <span class="tab-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.7 2.7L16 9.8"/></svg></span><span class="tab-label">Tracker</span>
+      </button>
+      <button type="button" class="tab" role="tab" id="tab-schedule" data-tab="schedule" aria-controls="panel-schedule" aria-selected="false">
+        <span class="tab-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2.5"/><path d="M4 10h16M9 3v4M15 3v4"/></svg></span><span class="tab-label">Schedule</span>
+      </button>
+      <button type="button" class="tab" role="tab" id="tab-chart" data-tab="chart" aria-controls="panel-chart" aria-selected="false">
+        <span class="tab-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 20h16M7 16v-4M12 16V7M17 16v-6"/></svg></span><span class="tab-label">Chart</span>
+      </button>
+      <button type="button" class="tab" role="tab" id="tab-calc" data-tab="calc" aria-controls="panel-calc" aria-selected="false">
+        <span class="tab-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2.5"/><path d="M8.5 7.5h7M8.5 12h.01M12 12h.01M15.5 12h.01M8.5 16h.01M12 16h.01M15.5 16h.01"/></svg></span><span class="tab-label">Calculator</span>
+      </button>
+    </nav>
+
+    <!-- Tracker -->
+    <section id="panel-tracker" class="narrow" role="tabpanel" aria-labelledby="tab-tracker">
+      <header class="hero">
+        <p id="big-label" class="eyebrow">Left to pay</p>
+        <p id="big" class="big">$0.00</p>
+        <div id="progress" class="progress" role="progressbar" aria-label="Paid off so far" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+          <div id="bar" class="bar"></div>
+        </div>
+        <p id="progress-text" class="progress-text"></p>
+        <p id="adj-note" class="sub-note" hidden></p>
+        <p id="plan-line" class="plan-line" hidden></p>
+      </header>
+
+      <form id="pay-form" class="pay" novalidate autocomplete="off">
+        <label class="sr-only" for="pay-amount">Payment amount</label>
+        <div class="money">
+          <span class="money-sign" aria-hidden="true">$</span>
+          <input id="pay-amount" type="text" inputmode="decimal" placeholder="0.00" enterkeyhint="done" aria-describedby="pay-msg">
+        </div>
+        <button type="submit" class="btn">Log payment</button>
+      </form>
+      <p id="adjust-row" class="adjust-row">
+        <button type="button" class="link" data-adjust>Balance changed (interest, fees, a statement)? Set your current balance</button>
+      </p>
+
+      <div id="done" class="done" tabindex="-1" hidden>
+        <p class="done-title">You did it.</p>
+        <p id="done-text" class="done-text"></p>
+        <div class="done-actions">
+          <button type="button" id="celebrate" class="btn">Celebrate again</button>
+          <button type="button" id="new-goal" class="btn btn-quiet">Start a new goal</button>
+        </div>
+      </div>
+
+      <p id="pay-msg" class="msg" role="status" aria-live="polite"></p>
+
+      <section class="history" aria-labelledby="history-title">
+        <div class="history-head">
+          <h2 id="history-title" tabindex="-1">History</h2>
+          <span id="history-count" class="count"></span>
+        </div>
+        <ol id="history" class="history-list"></ol>
+        <p id="history-empty" class="empty">No payments yet. Your first one will show up here.</p>
+      </section>
+
+      <footer class="foot">
+        <button type="button" id="sound-toggle" class="link">Sound: on</button>
+        <span aria-hidden="true">·</span>
+        <button type="button" class="link" data-adjust>Set current balance</button>
+        <span aria-hidden="true">·</span>
+        <button type="button" id="edit-start" class="link">Edit starting amount</button>
+        <span aria-hidden="true">·</span>
+        <button type="button" id="reset" class="link">Start over</button>
+      </footer>
+    </section>
+
+    <!-- Payoff schedule -->
+    <section id="panel-schedule" role="tabpanel" aria-labelledby="tab-schedule" hidden>
+      <div class="panel-head">
+        <h2>Payoff schedule</h2>
+        <p id="schedule-sub" class="panel-sub"></p>
+      </div>
+      <div id="schedule-body"></div>
+    </section>
+
+    <!-- Charts -->
+    <section id="panel-chart" role="tabpanel" aria-labelledby="tab-chart" hidden>
+      <div class="panel-head">
+        <h2>Charts</h2>
+        <p id="chart-sub" class="panel-sub"></p>
+      </div>
+      <div id="chart-body"></div>
+    </section>
+
+    <!-- Calculator -->
+    <section id="panel-calc" role="tabpanel" aria-labelledby="tab-calc" hidden>
+      <div class="panel-head">
+        <h2>Loan calculator</h2>
+        <p class="panel-sub">Set your interest rate and monthly payment. The schedule and charts use these numbers, and everything updates as you type.</p>
+      </div>
+      <form id="calc-form" class="calc-grid" novalidate autocomplete="off">
+        <div class="field">
+          <label for="calc-balance">Current balance</label>
+          <div class="money">
+            <span class="money-sign" aria-hidden="true">$</span>
+            <input id="calc-balance" type="text" inputmode="decimal" placeholder="0.00" enterkeyhint="done" aria-describedby="calc-balance-note">
+          </div>
+          <p id="calc-balance-note" class="field-note"></p>
+        </div>
+        <div class="field">
+          <label for="calc-rate">Interest rate (APR)</label>
+          <div class="money pct">
+            <input id="calc-rate" type="text" inputmode="decimal" placeholder="e.g. 6.5" enterkeyhint="next">
+            <span class="money-sign right" aria-hidden="true">%</span>
+          </div>
+          <p class="field-note">Annual rate; interest is figured monthly.</p>
+        </div>
+        <div class="field">
+          <label for="calc-payment">Monthly payment</label>
+          <div class="money">
+            <span class="money-sign" aria-hidden="true">$</span>
+            <input id="calc-payment" type="text" inputmode="decimal" placeholder="0.00" enterkeyhint="done">
+          </div>
+          <p id="calc-payment-note" class="field-note"></p>
+        </div>
+        <div class="field">
+          <label for="calc-first">First payment</label>
+          <input id="calc-first" class="plain-input" type="month" placeholder="YYYY-MM">
+          <p class="field-note">Month of the first payment in the plan.</p>
+        </div>
+      </form>
+      <p id="calc-msg" class="msg" role="status" aria-live="polite"></p>
+      <div id="calc-results"></div>
+    </section>
+  </div>
+
+  <p id="sr-status" class="sr-only" role="status" aria-live="polite"></p>
+</main>
+
+<canvas id="confetti" class="confetti" aria-hidden="true"></canvas>
+
+<dialog id="adjust-dialog" aria-labelledby="adjust-title">
+  <form id="adjust-form" class="dialog-body" novalidate autocomplete="off">
+    <h3 id="adjust-title">Set your current balance</h3>
+    <p class="dialog-text">Use this when interest, fees or a new statement changes what you owe. The difference is saved in your history.</p>
+    <label class="sr-only" for="adjust-amount">Current balance</label>
+    <div class="money">
+      <span class="money-sign" aria-hidden="true">$</span>
+      <input id="adjust-amount" type="text" inputmode="decimal" placeholder="0.00" aria-describedby="adjust-msg">
+    </div>
+    <p id="adjust-msg" class="msg" role="status" aria-live="polite"></p>
+    <div class="dialog-actions">
+      <button type="button" class="btn btn-quiet" data-close>Cancel</button>
+      <button type="submit" class="btn">Update balance</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="edit-dialog" aria-labelledby="edit-title">
+  <form id="edit-form" class="dialog-body" novalidate autocomplete="off">
+    <h3 id="edit-title">Edit starting amount</h3>
+    <p class="dialog-text">Fix a typo in the amount you started with. To account for interest or fees, use "Set current balance" instead.</p>
+    <label class="sr-only" for="edit-amount">Starting amount</label>
+    <div class="money">
+      <span class="money-sign" aria-hidden="true">$</span>
+      <input id="edit-amount" type="text" inputmode="decimal" placeholder="0.00" aria-describedby="edit-msg">
+    </div>
+    <p id="edit-msg" class="msg" role="status" aria-live="polite"></p>
+    <div class="dialog-actions">
+      <button type="button" class="btn btn-quiet" data-close>Cancel</button>
+      <button type="submit" class="btn">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="reset-dialog" aria-labelledby="reset-title">
+  <div class="dialog-body">
+    <h3 id="reset-title">Start over?</h3>
+    <p class="dialog-text">This clears your balance, history and loan settings. It can't be undone.</p>
+    <div class="dialog-actions">
+      <button type="button" class="btn btn-quiet" data-close>Keep my data</button>
+      <button type="button" id="reset-confirm" class="btn btn-warn">Start over</button>
+    </div>
+  </div>
+</dialog>
+
+<script>
+(() => {
+  'use strict';
+
+  /* ================= Basics ================= */
+  const KEY = 'debt-tracker:v1';
+  const MAX_CENTS = 1e11;   // $1 billion ceiling keeps all the math in safe integers
+  const MAX_MONTHS = 600;   // schedules stop at 50 years
+  const DAY = 864e5;
+  const $ = (id) => document.getElementById(id);
+  const mq = (q) => !!(window.matchMedia && window.matchMedia(q).matches);
+  const motionOK = !mq('(prefers-reduced-motion: reduce)');
+  const finePointer = mq('(hover: hover) and (pointer: fine)');
+
+  const moneyFmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+  const compactFmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 });
+  const fmt = (cents) => moneyFmt.format(cents / 100);
+  const fmtCompact = (cents) => compactFmt.format(cents / 100);
+  const fmtSigned = (cents) => (cents < 0 ? '−' : '+') + fmt(Math.abs(cents));
+  const plainFmt = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const plainMoney = (cents) => plainFmt.format(cents / 100); // "12,500.00" for prefilled inputs
+  const fmtRate = (apr) => `${Number(apr.toFixed(3))}%`;
+  const whenFmt = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+  const dayFmt = new Intl.DateTimeFormat(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
+  const shortDayFmt = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  const monthFmt = new Intl.DateTimeFormat(undefined, { month: 'short', year: 'numeric', timeZone: 'UTC' });
+  const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+  const validTime = (t) => Number.isFinite(t) && t > 0 && t < 8.64e15;
+
+  // Accepts "1,250.50", "$99", "12,50" (comma decimal) and ".75". Returns integer cents, or null.
+  function parseMoney(raw, allowZero = false) {
+    let s = String(raw == null ? '' : raw).trim().replace(/[\s$]/g, '');
+    if (/^\d+,\d{1,2}$/.test(s)) s = s.replace(',', '.');
+    s = s.replace(/,/g, '');
+    if (!/^(\d+\.?\d{0,2}|\.\d{1,2})$/.test(s)) return null;
+    const [whole, frac = ''] = s.split('.');
+    const cents = Number(whole || '0') * 100 + Number((frac + '00').slice(0, 2));
+    const ok = Number.isSafeInteger(cents) && cents <= MAX_CENTS && (allowZero ? cents >= 0 : cents > 0);
+    return ok ? cents : null;
+  }
+
+  // "6.5", "6.5%", "6,5" → 6.5 (percent per year). Returns null if invalid.
+  function parseRate(raw) {
+    const s = String(raw == null ? '' : raw).trim().replace(/%/g, '').replace(',', '.').trim();
+    if (!/^(\d+(\.\d+)?|\.\d+)$/.test(s)) return null;
+    const n = Number(s);
+    return n >= 0 && n <= 100 ? n : null;
+  }
+
+  // Months are "YYYY-MM" strings, handled in UTC so time zones never shift them.
+  const monthOk = (s) => typeof s === 'string' && /^(20\d{2}|2100)-(0[1-9]|1[0-2])$/.test(s);
+  // Lenient month input for browsers without a month picker: "2026-11", "2026-1", "11/2026".
+  function parseMonth(raw) {
+    const s = String(raw == null ? '' : raw).trim();
+    let m = s.match(/^(\d{4})-(\d{1,2})$/);
+    let y, mo;
+    if (m) { y = +m[1]; mo = +m[2]; } else if ((m = s.match(/^(\d{1,2})\/(\d{4})$/))) { mo = +m[1]; y = +m[2]; } else return null;
+    const out = `${y}-${String(mo).padStart(2, '0')}`;
+    return monthOk(out) ? out : null;
+  }
+  const ym = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  const thisMonth = () => ym(new Date());
+  function nextMonth() {
+    const d = new Date();
+    return ym(new Date(d.getFullYear(), d.getMonth() + 1, 1));
+  }
+  function monthTime(first, i) {
+    const [y, m] = first.split('-').map(Number);
+    return Date.UTC(y, m - 1 + i, 1);
+  }
+  const monthLabel = (first, i) => monthFmt.format(monthTime(first, i));
+  function duration(n) {
+    const y = Math.floor(n / 12), m = n % 12;
+    const parts = [];
+    if (y) parts.push(plural(y, 'yr'));
+    if (m || !y) parts.push(plural(m, 'mo'));
+    return parts.join(' ');
+  }
+
+  /* ================= Saving (localStorage) ================= */
+  const store = (() => {
+    try {
+      const probe = '__debt_tracker_probe__';
+      window.localStorage.setItem(probe, '1');
+      window.localStorage.removeItem(probe);
+      return window.localStorage;
+    } catch (e) {
+      return null;
+    }
+  })();
+
+  // The plan holds only the loan terms. The balance always comes from the tracker (one shared balance).
+  const blankPlan = () => ({ apr: null, payment: null, first: null });
+  const blank = (sound = true) => ({ start: null, startedAt: null, payments: [], sound, plan: blankPlan() });
+
+  function readPlan(p) {
+    p = p || {};
+    const money = (v) => (Number.isSafeInteger(v) && v > 0 && v <= MAX_CENTS ? v : null);
+    return {
+      apr: typeof p.apr === 'number' && p.apr >= 0 && p.apr <= 100 ? p.apr : null,
+      payment: money(p.payment),
+      first: monthOk(p.first) ? p.first : null
+    };
+  }
+
+  function load() {
+    if (!store) return blank();
+    let raw = null;
+    try {
+      raw = store.getItem(KEY);
+      if (!raw) return blank();
+      const s = JSON.parse(raw);
+      if (!s || !Array.isArray(s.payments)) throw new Error('Unexpected saved data');
+      const start = Number.isSafeInteger(s.start) && s.start > 0 ? s.start : null;
+      const entries = !start ? [] : s.payments.map((p) => {
+        if (!p) return null;
+        const id = String(p.id || uid());
+        const at = validTime(Number(p.at)) ? Number(p.at) : Date.now();
+        if (p.kind === 'adjust') {
+          return Number.isSafeInteger(p.delta) && p.delta !== 0 && Math.abs(p.delta) <= MAX_CENTS ? { id, kind: 'adjust', delta: p.delta, at } : null;
+        }
+        return Number.isSafeInteger(p.cents) && p.cents > 0 ? { id, cents: p.cents, at } : null;
+      }).filter(Boolean);
+      return {
+        start,
+        startedAt: validTime(Number(s.startedAt)) ? Number(s.startedAt) : null,
+        payments: entries,
+        sound: s.sound !== false,
+        plan: readPlan(s.plan)
+      };
+    } catch (e) {
+      // Keep a copy of anything unreadable instead of silently overwriting it.
+      if (raw) { try { store.setItem(KEY + ':backup', raw); } catch (_) { /* ignore */ } }
+      return blank();
+    }
+  }
+
+  function save() {
+    if (!store) return;
+    try {
+      store.setItem(KEY, JSON.stringify({ ...state, remaining: remaining() }));
+    } catch (e) {
+      $('storage-note').hidden = false;
+    }
+  }
+
+  let state = load();
+  const isAdjust = (p) => p.kind === 'adjust';
+  const payOnly = () => state.payments.filter((p) => !isAdjust(p));
+  const paidTotal = () => payOnly().reduce((sum, p) => sum + p.cents, 0);
+  const adjTotal = () => state.payments.reduce((sum, p) => sum + (isAdjust(p) ? p.delta : 0), 0);
+  const base = () => (state.start || 0) + adjTotal();            // everything you've owed: start ± adjustments
+  const remaining = () => Math.max(0, base() - paidTotal());
+
+  /* ================= Loan math ================= */
+  // Standard monthly amortization in whole cents. Interest each month = balance × APR ÷ 12.
+  function amortize(balance, apr, payment) {
+    const r = apr / 100 / 12;
+    const firstInterest = Math.round(balance * r);
+    if (balance <= 0) return { ok: true, rows: [], totalInterest: 0, totalPaid: 0, firstInterest: 0 };
+    if (payment <= firstInterest) return { ok: false, reason: 'low', rows: [], firstInterest, minPayment: firstInterest + 1 };
+    const rows = [];
+    let b = balance, totalInterest = 0, totalPaid = 0;
+    for (let i = 0; i < MAX_MONTHS && b > 0; i++) {
+      const interest = Math.round(b * r);
+      const pay = Math.min(payment, b + interest);
+      const principal = pay - interest;
+      const end = b - principal;
+      rows.push({ i, start: b, pay, interest, principal, end });
+      totalInterest += interest;
+      totalPaid += pay;
+      b = end;
+    }
+    return { ok: b === 0, reason: b > 0 ? 'long' : null, rows, totalInterest, totalPaid, firstInterest };
+  }
+
+  // While someone is typing a new balance in the calculator, preview with it; otherwise use the tracker balance.
+  let calcDraft = null;
+
+  function planNow() {
+    const p = state.plan;
+    const balance = calcDraft !== null ? calcDraft : remaining();
+    // A saved first-payment month that has already passed would make the schedule stale,
+    // so the plan always starts at the saved month or next month, whichever is later.
+    const first = p.first && p.first >= thisMonth() ? p.first : nextMonth();
+    const ready = p.apr !== null && p.payment !== null && balance > 0;
+    return { balance, apr: p.apr, payment: p.payment, first, ready };
+  }
+
+  /* ================= Sound (Web Audio, no files needed) ================= */
+  const sound = (() => {
+    let ac = null;
+    let out = null;
+
+    function ready() {
+      try {
+        if (!ac) {
+          const AC = window.AudioContext || window.webkitAudioContext;
+          if (!AC) return false;
+          ac = new AC();
+          const comp = ac.createDynamicsCompressor();
+          comp.threshold.value = -16;
+          comp.knee.value = 20;
+          comp.ratio.value = 4;
+          out = ac.createGain();
+          out.gain.value = 0.9;
+          out.connect(comp);
+          comp.connect(ac.destination);
+        }
+        if (ac.state === 'suspended') {
+          const resumed = ac.resume();
+          if (resumed && resumed.catch) resumed.catch(() => {});
+        }
+        return true;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    function tone(freq, at, dur, vol, type = 'sine', attack = 0.006) {
+      const osc = ac.createOscillator();
+      const amp = ac.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, at);
+      amp.gain.setValueAtTime(0.0001, at);
+      amp.gain.exponentialRampToValueAtTime(vol, at + attack);
+      amp.gain.exponentialRampToValueAtTime(0.0001, at + dur);
+      osc.connect(amp);
+      amp.connect(out);
+      osc.start(at);
+      osc.stop(at + dur + 0.05);
+    }
+
+    // A soft two-note chime (A5 → E6) with a faint shimmer on top.
+    function ding() {
+      if (!ready()) return;
+      const t = ac.currentTime + 0.01;
+      tone(880.0, t, 0.2, 0.15, 'triangle');
+      tone(1318.51, t + 0.09, 1.2, 0.2);
+      tone(2637.02, t + 0.09, 0.5, 0.03);
+    }
+
+    // A rising arpeggio into a warm held chord, with a few twinkles.
+    function fanfare() {
+      if (!ready()) return;
+      const t = ac.currentTime + 0.02;
+      const arp = [523.25, 659.25, 783.99, 1046.5, 1318.51];
+      arp.forEach((f, i) => tone(f, t + i * 0.09, 0.55, 0.15, 'triangle'));
+      const c = t + arp.length * 0.09 + 0.04;
+      tone(130.81, c, 2.6, 0.12);
+      [261.63, 523.25, 659.25, 783.99, 1046.5].forEach((f) => tone(f, c, 2.6, 0.075, 'triangle', 0.03));
+      const twinkles = [2093.0, 2349.32, 2637.02, 3135.96, 3520.0];
+      for (let i = 0; i < 12; i++) {
+        const f = twinkles[Math.floor(Math.random() * twinkles.length)];
+        tone(f, c + 0.15 + i * 0.11 + Math.random() * 0.04, 0.3, 0.025 + Math.random() * 0.02);
+      }
+    }
+
+    return {
+      unlock: ready,
+      ding: () => { try { ding(); } catch (e) { /* sound is a nice-to-have */ } },
+      fanfare: () => { try { fanfare(); } catch (e) { /* sound is a nice-to-have */ } }
+    };
+  })();
+
+  /* ================= Confetti (canvas, no library) ================= */
+  const confetti = (() => {
+    const canvas = $('confetti');
+    const g = canvas.getContext ? canvas.getContext('2d') : null;
+    const colors = ['#4e806e', '#86bfa9', '#f1c56a', '#ee9b7d', '#a99ce0', '#7fb4d6', '#f7e3a1'];
+    const GRAVITY = 0.3;
+    let parts = [];
+    let raf = 0;
+    let last = 0;
+    let endAt = 0;
+    let waveTimer = 0;
+    let wavePending = false;
+    let w = 0;
+    let h = 0;
+
+    function size() {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      w = window.innerWidth;
+      h = window.innerHeight;
+      canvas.width = Math.round(w * dpr);
+      canvas.height = Math.round(h * dpr);
+      canvas.style.width = w + 'px';
+      canvas.style.height = h + 'px';
+      g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    // Two cannons fire from the bottom corners, up and inward.
+    function cannon(n, fromLeft) {
+      const reach = Math.sqrt(2 * GRAVITY * h * 0.9);
+      const spread = Math.max(0.4, Math.min(1, w / 1100));
+      for (let i = 0; i < n; i++) {
+        const angle = ((fromLeft ? -63 : -117) + (Math.random() - 0.5) * 34) * (Math.PI / 180);
+        const speed = reach * (0.5 + Math.random() * 0.6);
+        parts.push({
+          x: fromLeft ? -10 : w + 10,
+          y: h * 0.9,
+          vx: Math.cos(angle) * speed * spread,
+          vy: Math.sin(angle) * speed,
+          term: 2.2 + Math.random() * 1.6,
+          s: 6 + Math.random() * 7,
+          r: 0.4 + Math.random() * 0.5,
+          rot: Math.random() * Math.PI * 2,
+          vrot: (Math.random() - 0.5) * 0.24,
+          flip: Math.random() * Math.PI * 2,
+          vflip: 0.07 + Math.random() * 0.12,
+          sway: Math.random() * Math.PI * 2,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          round: Math.random() < 0.22,
+          wait: Math.random() * 14
+        });
+      }
+    }
+
+    function burst() {
+      if (!g) return;
+      size();
+      const n = !motionOK ? 40 : w < 600 ? 130 : 200;
+      cannon(n / 2, true);
+      cannon(n / 2, false);
+      clearTimeout(waveTimer);
+      wavePending = motionOK;
+      if (motionOK) {
+        waveTimer = setTimeout(() => {
+          wavePending = false;
+          cannon(n / 4, true);
+          cannon(n / 4, false);
+        }, 420);
+      }
+      endAt = performance.now() + 7500;
+      canvas.classList.add('on');
+      if (!raf) {
+        last = performance.now();
+        raf = requestAnimationFrame(tick);
+      }
+    }
+
+    function tick(now) {
+      const dt = Math.min(3, Math.max(0, (now - last) / 16.667));
+      last = now;
+      const timeLeft = endAt - now;
+      const alpha = timeLeft < 1400 ? Math.max(0, timeLeft / 1400) : 1;
+      g.clearRect(0, 0, w, h);
+      for (const p of parts) {
+        if (p.wait > 0) { p.wait -= dt; continue; }
+        p.vy += GRAVITY * dt;
+        if (p.vy > p.term) p.vy = p.term + (p.vy - p.term) * Math.pow(0.75, dt); // flutter down gently
+        p.vx *= Math.pow(0.988, dt);
+        p.sway += 0.06 * dt;
+        p.x += (p.vx + Math.sin(p.sway) * 0.7) * dt;
+        p.y += p.vy * dt;
+        p.rot += p.vrot * dt;
+        p.flip += p.vflip * dt;
+        if (p.y > h + 30) continue;
+        const squash = Math.abs(Math.cos(p.flip));
+        g.save();
+        g.globalAlpha = alpha;
+        g.translate(p.x, p.y);
+        g.rotate(p.rot);
+        g.fillStyle = p.color;
+        if (p.round) {
+          g.beginPath();
+          g.ellipse(0, 0, p.s * 0.4, p.s * 0.4 * squash + 0.5, 0, 0, Math.PI * 2);
+          g.fill();
+        } else {
+          const ph = p.s * p.r * squash + 0.6;
+          g.fillRect(-p.s / 2, -ph / 2, p.s, ph);
+        }
+        g.restore();
+      }
+      parts = parts.filter((p) => p.wait > 0 || p.y <= h + 30);
+      if (timeLeft <= 0 || (!parts.length && !wavePending)) { stop(); return; }
+      raf = requestAnimationFrame(tick);
+    }
+
+    function stop() {
+      cancelAnimationFrame(raf);
+      clearTimeout(waveTimer);
+      raf = 0;
+      wavePending = false;
+      parts = [];
+      if (g) g.clearRect(0, 0, w, h);
+      canvas.classList.remove('on');
+    }
+
+    return { burst, stop, resize: () => { if (raf) size(); } };
+  })();
+
+  /* ================= The big number ================= */
+  const bigEl = $('big');
+  const measurer = document.createElement('span');
+  measurer.className = 'big';
+  measurer.setAttribute('aria-hidden', 'true');
+  measurer.style.cssText = 'position:absolute;left:-9999px;top:0;visibility:hidden;display:inline-block;';
+  document.body.appendChild(measurer);
+
+  let shown = 0;
+  let countRaf = 0;
+
+  function showNumber(cents) {
+    shown = cents;
+    bigEl.textContent = fmt(cents);
+  }
+
+  // Count smoothly from the old total to the new one.
+  function countTo(target) {
+    cancelAnimationFrame(countRaf);
+    const from = shown;
+    if (!motionOK || from === target) { showNumber(target); return; }
+    const t0 = performance.now();
+    const duration = 850;
+    const step = (now) => {
+      const t = Math.min(1, Math.max(0, (now - t0) / duration));
+      const eased = 1 - Math.pow(1 - t, 3);
+      showNumber(Math.round(from + (target - from) * eased));
+      if (t < 1) countRaf = requestAnimationFrame(step);
+    };
+    countRaf = requestAnimationFrame(step);
+  }
+
+  // Size the number so the largest value it will show fits on one line.
+  function fitBig() {
+    const avail = bigEl.clientWidth;
+    if (!avail) return;
+    const max = Math.max(44, Math.min(112, window.innerWidth * 0.17));
+    measurer.style.fontSize = max + 'px';
+    measurer.textContent = fmt(Math.max(base(), shown));
+    const width = measurer.getBoundingClientRect().width;
+    bigEl.style.fontSize = (width > avail ? Math.floor((max * avail) / width) : max) + 'px';
+  }
+
+  function nudge(cls) {
+    if (!motionOK) return;
+    bigEl.classList.remove('bump', 'pop');
+    void bigEl.offsetWidth; // restart the animation
+    bigEl.classList.add(cls);
+  }
+  bigEl.addEventListener('animationend', () => bigEl.classList.remove('bump', 'pop'));
+
+  /* ================= Messages ================= */
+  const msgTimers = {};
+  function say(id, text, kind = '') {
+    const el = $(id);
+    el.textContent = text;
+    el.dataset.kind = kind;
+    clearTimeout(msgTimers[id]);
+    if (kind === 'ok') {
+      msgTimers[id] = setTimeout(() => { el.textContent = ''; el.dataset.kind = ''; }, 5000);
+    }
+  }
+
+  function announce(text) {
+    const el = $('sr-status');
+    el.textContent = '';
+    setTimeout(() => { el.textContent = text; }, 60);
+  }
+
+  const cheers = [
+    (a) => `Nice. ${a} down.`,
+    (a) => `${a} closer.`,
+    (a) => `Logged. That's ${a} lighter.`,
+    (a) => `Another ${a} gone.`,
+    (a) => `Steady progress: ${a} paid.`
+  ];
+  let cheerIndex = Math.floor(Math.random() * cheers.length);
+  const cheer = (cents) => cheers[cheerIndex++ % cheers.length](fmt(cents));
+
+  /* ================= Tabs ================= */
+  const TABS = ['tracker', 'schedule', 'chart', 'calc'];
+  const hashTab = () => { const h = String(location.hash || '').slice(1); return TABS.includes(h) ? h : 'tracker'; };
+  let tab = hashTab();
+
+  function setTabUI() {
+    TABS.forEach((t) => {
+      const on = t === tab;
+      $('tab-' + t).setAttribute('aria-selected', String(on));
+      $('tab-' + t).tabIndex = on ? 0 : -1;
+      $('panel-' + t).hidden = !on;
+    });
+  }
+
+  function showTab(name, focus = false) {
+    const changed = name !== tab;
+    tab = TABS.includes(name) ? name : 'tracker';
+    setTabUI();
+    try {
+      const url = tab === 'tracker' ? location.pathname + location.search : '#' + tab;
+      if (history.replaceState) history.replaceState(null, '', url);
+    } catch (e) { /* some file:// setups block this; tabs still work */ }
+    renderTab();
+    if (changed && window.scrollTo) window.scrollTo(0, 0); // start each tab at the top (matters on phones)
+    if (focus) $('tab-' + tab).focus();
+  }
+
+  // Every tab is rebuilt from the saved data whenever it is shown, so no view can go stale.
+  function renderTab() {
+    if (tab === 'tracker') render();
+    else if (tab === 'schedule') renderSchedule();
+    else if (tab === 'chart') renderCharts();
+    else if (tab === 'calc') renderCalc();
+  }
+
+  TABS.forEach((t, i) => {
+    const b = $('tab-' + t);
+    b.addEventListener('click', () => showTab(t));
+    b.addEventListener('keydown', (e) => {
+      const dir = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+      if (dir) { e.preventDefault(); showTab(TABS[(i + dir + TABS.length) % TABS.length], true); }
+    });
+  });
+  window.addEventListener('hashchange', () => { if (hashTab() !== tab) showTab(hashTab()); });
+
+  // Any element with data-goto="tab" switches tabs (used inside rendered panels).
+  document.addEventListener('click', (e) => {
+    const el = e.target && e.target.closest ? e.target.closest('[data-goto]') : null;
+    if (el) { e.preventDefault(); showTab(el.getAttribute('data-goto')); }
+  });
+
+  /* ================= Tracker rendering ================= */
+  function render({ animate = false, flashId = null } = {}) {
+    const ready = Number.isSafeInteger(state.start) && state.start > 0;
+    $('setup').hidden = ready;
+    $('app').hidden = !ready;
+    $('sound-toggle').textContent = state.sound ? 'Sound: on' : 'Sound: off';
+    if (!ready) {
+      document.body.classList.remove('is-done');
+      document.title = 'Debt Tracker';
+      return;
+    }
+
+    const left = remaining();
+    const done = left === 0;
+    if (animate) {
+      countTo(left);
+    } else {
+      cancelAnimationFrame(countRaf);
+      showNumber(left);
+    }
+    fitBig();
+    renderProgress();
+    renderPlanLine();
+    renderHistory(flashId);
+
+    document.body.classList.toggle('is-done', done);
+    $('big-label').textContent = done ? 'Debt free' : 'Left to pay';
+    $('pay-form').hidden = done;
+    $('adjust-row').hidden = done;
+    $('done').hidden = !done;
+    if (done) {
+      const since = state.startedAt ? ` since ${dayFmt.format(state.startedAt)}` : '';
+      $('done-text').textContent = `You paid off ${fmt(base())} in ${plural(payOnly().length, 'payment')}${since}.`;
+    }
+    document.title = done ? 'Debt free · Debt Tracker' : `${fmt(left)} left · Debt Tracker`;
+    if (tab !== 'tracker') renderTab();
+  }
+
+  function renderProgress() {
+    const total = Math.max(base(), 0);
+    const paid = Math.min(paidTotal(), total);
+    const pct = total ? (paid / total) * 100 : 0;
+    const label = pct > 0 && pct < 1 ? '<1%' : `${Math.floor(pct)}%`;
+    $('bar').style.width = pct + '%';
+    $('progress').setAttribute('aria-valuenow', String(Math.floor(pct)));
+    $('progress-text').textContent = `${fmt(paid)} of ${fmt(total)} paid off · ${label}`;
+    const adj = adjTotal();
+    $('adj-note').hidden = adj === 0;
+    $('adj-note').textContent = adj ? `Includes ${fmtSigned(adj)} in balance adjustments` : '';
+  }
+
+  function renderPlanLine() {
+    const el = $('plan-line');
+    const pl = planNow();
+    el.classList.remove('cta');
+    if (pl.balance === 0) { el.hidden = true; return; }
+    el.hidden = false;
+    if (!pl.ready) {
+      el.classList.add('cta');
+      el.innerHTML = '<button type="button" class="link accent" data-goto="calc">Add your interest rate and payment to see your payoff date →</button>';
+      return;
+    }
+    const s = amortize(pl.balance, pl.apr, pl.payment);
+    if (s.reason === 'low') {
+      el.textContent = `At ${fmt(pl.payment)}/mo, interest (${fmt(s.firstInterest)}/mo) outpaces your payment`;
+    } else if (s.reason === 'long') {
+      el.textContent = `At ${fmt(pl.payment)}/mo this takes more than 50 years`;
+    } else {
+      el.textContent = `On pace to be debt free by ${monthLabel(pl.first, s.rows.length - 1)} · ${fmt(pl.payment)}/mo at ${fmtRate(pl.apr)} APR`;
+    }
+  }
+
+  function renderHistory(flashId) {
+    const list = $('history');
+    list.textContent = '';
+    // Running balance after each entry, so adjustments can say what the balance became.
+    const after = {};
+    let b = state.start || 0;
+    for (const p of state.payments) { b += isAdjust(p) ? p.delta : -p.cents; after[p.id] = b; }
+    const items = state.payments.slice().reverse(); // newest first
+    for (const p of items) list.appendChild(historyItem(p, p.id === flashId, after[p.id]));
+    $('history-empty').hidden = items.length > 0;
+    const n = payOnly().length, a = items.length - n;
+    $('history-count').textContent = items.length
+      ? [n ? plural(n, 'payment') : '', a ? plural(a, 'adjustment') : ''].filter(Boolean).join(' · ')
+      : '';
+  }
+
+  function historyItem(p, flash, balanceAfter) {
+    const adj = isAdjust(p);
+    const li = document.createElement('li');
+    li.className = flash && motionOK ? 'item flash' : 'item';
+    li.dataset.id = p.id;
+
+    const main = document.createElement('div');
+    main.className = 'item-main';
+    const left = document.createElement('div');
+    left.className = 'item-left';
+    const amount = document.createElement('span');
+    amount.className = adj ? 'item-amt adj' : 'item-amt';
+    amount.textContent = adj ? fmtSigned(p.delta) : '−' + fmt(p.cents);
+    left.appendChild(amount);
+    if (adj) {
+      const note = document.createElement('span');
+      note.className = 'item-note';
+      note.textContent = `Balance set to ${fmt(Math.max(0, balanceAfter))}`;
+      left.appendChild(note);
+    }
+    const when = document.createElement('time');
+    when.className = 'item-when';
+    when.dateTime = new Date(p.at).toISOString();
+    when.textContent = whenFmt.format(p.at);
+    main.append(left, when);
+
+    const what = adj ? `${fmtSigned(p.delta)} adjustment` : `${fmt(p.cents)} payment`;
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'item-x';
+    remove.textContent = '×';
+    remove.title = adj ? 'Remove this adjustment' : 'Remove this payment';
+    remove.setAttribute('aria-label', `Remove ${what} from ${whenFmt.format(p.at)}`);
+    remove.addEventListener('click', () => askRemove(li, p, what));
+
+    li.append(main, remove);
+    return li;
+  }
+
+  // Inline "are you sure?" so a stray click never deletes anything.
+  function askRemove(li, p, what) {
+    li.className = 'item confirming';
+    li.textContent = '';
+    const question = document.createElement('span');
+    question.className = 'item-q';
+    question.textContent = `Remove this ${what}?`;
+    const actions = document.createElement('div');
+    actions.className = 'item-actions';
+    const keep = makeButton('Keep', 'btn btn-small btn-quiet', () => { renderHistory(); focusRemoveButton(p.id); });
+    const drop = makeButton('Remove', 'btn btn-small btn-warn', () => removeEntry(p.id));
+    actions.append(keep, drop);
+    li.append(question, actions);
+    li.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') { renderHistory(); focusRemoveButton(p.id); }
+    });
+    keep.focus();
+  }
+
+  function focusRemoveButton(id) {
+    for (const li of $('history').children) {
+      if (li.dataset.id === id) { li.querySelector('.item-x').focus(); return; }
+    }
+  }
+
+  function makeButton(label, className, onClick) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = className;
+    b.textContent = label;
+    b.addEventListener('click', onClick);
+    return b;
+  }
+
+  /* ================= Tracker actions ================= */
+  function celebrate() {
+    if (state.sound) sound.fanfare();
+    confetti.burst();
+  }
+
+  function logPayment(entered) {
+    const before = remaining();
+    if (before === 0) return;
+    const cents = Math.min(entered, before);
+    const capped = entered > before;
+    const payment = { id: uid(), cents, at: Date.now() };
+    state.payments.push(payment);
+    save();
+    render({ animate: true, flashId: payment.id });
+
+    const left = remaining();
+    if (left === 0) {
+      nudge('pop');
+      celebrate();
+      say('pay-msg', capped ? `That was more than what was left, so it's logged as ${fmt(cents)}.` : '', capped ? 'ok' : '');
+      announce('Paid off. You are debt free!');
+      $('done').focus({ preventScroll: true });
+    } else {
+      nudge('bump');
+      if (state.sound) sound.ding();
+      say('pay-msg', cheer(cents), 'ok');
+      announce(`${fmt(left)} left to pay.`);
+    }
+  }
+
+  function removeEntry(id) {
+    const entry = state.payments.find((p) => p.id === id);
+    if (!entry) return;
+    const rest = state.payments.filter((p) => p.id !== id);
+    const restBase = (state.start || 0) + rest.reduce((s, p) => s + (isAdjust(p) ? p.delta : 0), 0);
+    const restPaid = rest.reduce((s, p) => s + (isAdjust(p) ? 0 : p.cents), 0);
+    if (restBase < restPaid) {
+      renderHistory();
+      say('pay-msg', "Can't remove that one: your payments would add up to more than the balance.", 'error');
+      return;
+    }
+    const wasDone = remaining() === 0;
+    state.payments = rest;
+    save();
+    render({ animate: true });
+    const word = isAdjust(entry) ? 'Adjustment' : 'Payment';
+    say('pay-msg', wasDone && remaining() > 0 ? `${word} removed. Back to tracking.` : `${word} removed.`, 'ok');
+    announce(`${word} removed. ${fmt(remaining())} left to pay.`);
+    $('history-title').focus({ preventScroll: true });
+  }
+
+  // Set the balance to what the lender says now; the difference is logged as an adjustment.
+  function setBalance(target) {
+    const before = remaining();
+    const delta = target - before;
+    if (delta === 0) return { changed: false };
+    const entry = { id: uid(), kind: 'adjust', delta, at: Date.now() };
+    state.payments.push(entry);
+    save();
+    // Animate only when the tracker is on screen; from another tab, update it instantly.
+    const onTracker = tab === 'tracker';
+    render({ animate: onTracker, flashId: entry.id });
+    if (target === 0 && before > 0) {
+      nudge('pop');
+      celebrate();
+      if (onTracker) $('done').focus({ preventScroll: true });
+    } else if (onTracker) {
+      nudge('bump');
+    }
+    return { changed: true, delta, wasDone: before === 0 };
+  }
+
+  /* ================= Schedule tab ================= */
+  // Shared "is there a plan to show?" check for the schedule and chart tabs.
+  function planGate(container) {
+    const pl = planNow();
+    if (pl.balance === 0) {
+      container.innerHTML = `<div class="card center"><p>You're debt free, so there's nothing left to schedule.</p></div>`;
+      return null;
+    }
+    if (!pl.ready) {
+      container.innerHTML = `<div class="card center"><p>Add your interest rate and monthly payment to see your payoff plan.</p><button type="button" class="btn" data-goto="calc">Open the calculator</button></div>`;
+      return null;
+    }
+    const s = amortize(pl.balance, pl.apr, pl.payment);
+    if (s.reason === 'low') {
+      container.innerHTML = `<div class="card center warn"><p>At ${fmtRate(pl.apr)} APR, interest on ${fmt(pl.balance)} is about ${fmt(s.firstInterest)} a month, so a ${fmt(pl.payment)} payment never pays it down. Pay at least ${fmt(s.minPayment)} a month.</p><button type="button" class="btn" data-goto="calc">Change the payment</button></div>`;
+      return null;
+    }
+    return { pl, s };
+  }
+
+  function planSentence(pl) {
+    return `${fmt(pl.balance)} at ${fmtRate(pl.apr)} APR, paying ${fmt(pl.payment)} a month starting ${monthLabel(pl.first, 0)}.`;
+  }
+
+  function summaryStats(pl, s) {
+    const n = s.rows.length;
+    const payoff = s.ok ? monthLabel(pl.first, n - 1) : 'Over 50 yrs';
+    return `<div class="stats">
+      <div class="stat"><p class="stat-label">Debt free</p><p class="stat-value">${payoff}</p><p class="stat-sub">${plural(n, 'payment')} · ${duration(n)}</p></div>
+      <div class="stat hl"><p class="stat-label">Total interest</p><p class="stat-value">${fmt(s.totalInterest)}</p><p class="stat-sub">${Math.round((s.totalInterest / s.totalPaid) * 100)}% of what you'll pay</p></div>
+      <div class="stat"><p class="stat-label">Total paid</p><p class="stat-value">${fmt(s.totalPaid)}</p><p class="stat-sub">principal + interest</p></div>
+      <div class="stat"><p class="stat-label">Last payment</p><p class="stat-value">${fmt(s.rows[n - 1].pay)}</p><p class="stat-sub">${monthLabel(pl.first, n - 1)}</p></div>
+    </div>`;
+  }
+
+  function renderSchedule() {
+    const body = $('schedule-body');
+    const gate = planGate(body);
+    if (!gate) { $('schedule-sub').textContent = 'Every payment until you reach zero.'; return; }
+    const { pl, s } = gate;
+    $('schedule-sub').innerHTML = `${planSentence(pl)} <button type="button" class="link accent" data-goto="calc">Change</button>`;
+    const rows = s.rows.map((r) => {
+      const jan = new Date(monthTime(pl.first, r.i)).getUTCMonth() === 0 && r.i > 0;
+      // data-label powers the phone layout, where each month becomes a small card.
+      return `<tr${jan ? ' class="yr"' : ''}><td>${r.i + 1}</td><td data-label="Payment ${r.i + 1}">${monthLabel(pl.first, r.i)}</td><td>${fmt(r.start)}</td><td data-label="Payment">${fmt(r.pay)}</td><td class="int" data-label="Interest">${fmt(r.interest)}</td><td class="prin" data-label="Principal">${fmt(r.principal)}</td><td data-label="Balance after">${fmt(r.end)}</td></tr>`;
+    }).join('');
+    const totalPrincipal = s.rows.reduce((t, r) => t + r.principal, 0);
+    body.innerHTML = `${summaryStats(pl, s)}
+      <div class="table-wrap" tabindex="0" role="region" aria-label="Payoff schedule table">
+        <table>
+          <caption class="sr-only">Monthly payoff schedule</caption>
+          <thead><tr><th scope="col">#</th><th scope="col">Month</th><th scope="col">Start balance</th><th scope="col">Payment</th><th scope="col">Interest</th><th scope="col">Principal</th><th scope="col">End balance</th></tr></thead>
+          <tbody>${rows}</tbody>
+          <tfoot><tr><td></td><td data-label="All ${s.rows.length} payments">Total</td><td></td><td data-label="Paid">${fmt(s.totalPaid)}</td><td class="int" data-label="Interest">${fmt(s.totalInterest)}</td><td class="prin" data-label="Principal">${fmt(totalPrincipal)}</td><td data-label="Balance after">${fmt(s.rows[s.rows.length - 1].end)}</td></tr></tfoot>
+        </table>
+      </div>
+      ${s.reason === 'long' ? '<p class="fine-print">This plan runs past 50 years, so only the first 600 payments are shown. Try a bigger payment.</p>' : ''}
+      <p class="fine-print">Estimates assume a fixed rate with interest figured monthly (APR ÷ 12) and no new charges. Your lender's numbers may differ by a few cents.</p>`;
+  }
+
+  /* ================= Chart tab ================= */
+  function niceCeil(v) {
+    if (v <= 0) return 100;
+    const p = Math.pow(10, Math.floor(Math.log10(v)));
+    const n = v / p;
+    // Steps that split evenly into 4 gridlines, so axis labels stay round.
+    return [1, 1.2, 1.6, 2, 2.4, 3, 4, 5, 6, 8, 10].find((c) => n <= c + 1e-9) * p;
+  }
+
+  function timeTicks(t0, t1, maxTicks = 7) {
+    const months = (t1 - t0) / (30.44 * DAY);
+    const step = [1, 2, 3, 6, 12, 24, 60, 120].find((s) => months / s <= maxTicks) || 120;
+    const d = new Date(t0);
+    let y = d.getUTCFullYear(), m = d.getUTCMonth() + 1; // first month boundary after t0
+    const ticks = [];
+    for (let guard = 0; guard < 2000; guard++, m++) {
+      const t = Date.UTC(y, m, 1);
+      if (t > t1) break;
+      const dt = new Date(t);
+      const mm = dt.getUTCMonth(), yy = dt.getUTCFullYear();
+      const aligned = step >= 12 ? mm === 0 && yy % (step / 12) === 0 : mm % step === 0;
+      if (aligned) ticks.push({ t, label: step >= 12 ? String(yy) : monthFmt.format(t) });
+    }
+    return ticks;
+  }
+
+  // Balance over time: what actually happened (from your history) and the projected path.
+  function actualHistory() {
+    const pts = [];
+    let b = state.start || 0;
+    const t0 = state.startedAt || (state.payments[0] ? state.payments[0].at - DAY : Date.now() - DAY);
+    pts.push({ t: t0, b });
+    for (const p of state.payments) {
+      b += isAdjust(p) ? p.delta : -p.cents;
+      pts.push({ t: p.at, b: Math.max(0, b), label: isAdjust(p) ? 'Adjustment' : 'Payment' });
+    }
+    return pts;
+  }
+
+  // Charts are drawn at the card's real pixel width, so text stays 12px on phones instead of shrinking.
+  const chartBox = (W) => ({ W, L: W < 480 ? 50 : 64, R: W < 480 ? 10 : 18, T: 14, B: 34 });
+
+  function balanceChart(pl, s, width) {
+    const { W, L, R, T, B } = chartBox(width);
+    const H = W < 480 ? 240 : 320;
+    const now = Date.now();
+    const firstPay = monthTime(pl.first, 0);
+    const actual = actualHistory();
+    const startT = Math.min(now, firstPay - 15 * DAY);
+    const proj = [{ t: startT, b: pl.balance, label: 'Today' }].concat(
+      s.rows.map((r) => ({ t: monthTime(pl.first, r.i), b: r.end, label: monthLabel(pl.first, r.i) }))
+    );
+    const tMin = Math.min(actual[0].t, proj[0].t);
+    const tMax = Math.max(proj[proj.length - 1].t, tMin + 30 * DAY);
+    const yMax = niceCeil(Math.max(...actual.map((p) => p.b), ...proj.map((p) => p.b)));
+    const x = (t) => L + ((t - tMin) / (tMax - tMin)) * (W - L - R);
+    const y = (v) => T + (1 - v / yMax) * (H - T - B);
+    const line = (pts) => pts.map((p, i) => `${i ? 'L' : 'M'}${x(p.t).toFixed(1)},${y(p.b).toFixed(1)}`).join('');
+
+    let grid = '';
+    for (let k = 0; k <= 4; k++) {
+      const v = (yMax * k) / 4;
+      grid += `<line class="g-grid" x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}"/><text class="g-axis" x="${L - 10}" y="${y(v) + 4}" text-anchor="end">${fmtCompact(v)}</text>`;
+    }
+    const maxTicks = Math.max(3, Math.floor((W - L - R) / 80));
+    const xt = timeTicks(tMin, tMax, maxTicks)
+      .filter((tk) => x(tk.t) > L + 20 && x(tk.t) < W - R - 20)
+      .map((tk) => `<text class="g-axis" x="${x(tk.t).toFixed(1)}" y="${H - 10}" text-anchor="middle">${tk.label}</text>`).join('');
+    const area = `${line(proj)}L${x(proj[proj.length - 1].t).toFixed(1)},${y(0)}L${x(proj[0].t).toFixed(1)},${y(0)}Z`;
+    const dots = actual.length <= 150 ? actual.slice(1).map((p) => `<circle class="g-dot" cx="${x(p.t).toFixed(1)}" cy="${y(p.b).toFixed(1)}" r="3.5"/>`).join('') : '';
+    const svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Balance over time, from ${fmt(pl.balance)} today to zero in ${monthLabel(pl.first, s.rows.length - 1)}">
+      ${grid}${xt}
+      <path class="g-area" d="${area}"/>
+      <path class="g-proj" d="${line(proj)}"/>
+      <line class="g-today" x1="${x(now)}" x2="${x(now)}" y1="${T}" y2="${y(0)}"/>
+      <text class="g-axis" x="${x(now) + 4}" y="${T + 10}">Today</text>
+      ${actual.length > 1 ? `<path class="g-actual" d="${line(actual)}"/>` : ''}${dots}
+      <circle class="g-hover" r="5" cx="-20" cy="-20" visibility="hidden"/>
+    </svg>`;
+    const points = proj.map((p) => ({ ...p, kind: 'Projected' }))
+      .concat(actual.map((p, i) => ({ ...p, kind: 'Actual', label: i ? `${p.label} · ${shortDayFmt.format(p.t)}` : `Start · ${shortDayFmt.format(p.t)}` })));
+    return { svg, W, H, hit: (px) => nearest(points, (p) => x(p.t), px), pos: (p) => [x(p.t), y(p.b)],
+      tip: (p) => `<strong>${fmt(p.b)}</strong><span>${p.kind} · ${p.label}</span>` };
+  }
+
+  // Each payment split into principal and interest (grouped by year for long plans).
+  function splitChart(pl, s, width) {
+    const { W, L, R, T, B } = chartBox(width);
+    const H = W < 480 ? 220 : 280;
+    let groups = s.rows.map((r) => ({ label: monthLabel(pl.first, r.i), p: r.principal, i: r.interest }));
+    const yearly = groups.length > 60;
+    if (yearly) {
+      const byYear = new Map();
+      s.rows.forEach((r) => {
+        const yr = new Date(monthTime(pl.first, r.i)).getUTCFullYear();
+        const g = byYear.get(yr) || { label: String(yr), p: 0, i: 0 };
+        g.p += r.principal; g.i += r.interest;
+        byYear.set(yr, g);
+      });
+      groups = [...byYear.values()];
+    }
+    const n = groups.length;
+    const yMax = niceCeil(Math.max(...groups.map((g) => g.p + g.i)));
+    const band = (W - L - R) / n;
+    const bw = Math.min(48, Math.max(1, band * 0.72));
+    const y = (v) => T + (1 - v / yMax) * (H - T - B);
+    let grid = '';
+    for (let k = 0; k <= 4; k++) {
+      const v = (yMax * k) / 4;
+      grid += `<line class="g-grid" x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}"/><text class="g-axis" x="${L - 10}" y="${y(v) + 4}" text-anchor="end">${fmtCompact(v)}</text>`;
+    }
+    const every = Math.ceil(n / Math.max(2, Math.floor((W - L - R) / 70)));
+    let bars = '', labels = '';
+    groups.forEach((g, k) => {
+      const bx = L + k * band + (band - bw) / 2;
+      bars += `<rect class="g-prin" x="${bx.toFixed(1)}" y="${y(g.p).toFixed(1)}" width="${bw.toFixed(1)}" height="${(y(0) - y(g.p)).toFixed(1)}"/>`;
+      bars += `<rect class="g-int" x="${bx.toFixed(1)}" y="${y(g.p + g.i).toFixed(1)}" width="${bw.toFixed(1)}" height="${(y(g.p) - y(g.p + g.i)).toFixed(1)}"/>`;
+      if (k % every === 0) labels += `<text class="g-axis" x="${(L + k * band + band / 2).toFixed(1)}" y="${H - 10}" text-anchor="middle">${yearly ? g.label : g.label.replace(/\s\d{2}(\d{2})$/, ' ’$1')}</text>`;
+    });
+    const svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Principal and interest in each ${yearly ? 'year' : 'payment'}">
+      ${grid}${bars}${labels}
+      <rect class="g-band" x="-100" y="${T}" width="${band.toFixed(1)}" height="${(y(0) - T).toFixed(1)}" visibility="hidden"/>
+    </svg>`;
+    const points = groups.map((g, k) => ({ ...g, k }));
+    return { svg, W, H, yearly, band, L, T,
+      hit: (px) => points[Math.max(0, Math.min(n - 1, Math.floor((px - L) / band)))],
+      pos: (g) => [L + g.k * band + band / 2, y(g.p + g.i)],
+      tip: (g) => `<strong>${g.label}</strong><span>Principal ${fmt(g.p)}</span><span>Interest ${fmt(g.i)}</span>` };
+  }
+
+  function nearest(points, xOf, px) {
+    let best = null, bd = Infinity;
+    for (const p of points) { const d = Math.abs(xOf(p) - px); if (d < bd) { bd = d; best = p; } }
+    return best;
+  }
+
+  // Hover / touch tooltips for a rendered chart card.
+  function wireChart(card, chart, kind) {
+    if (!card) return;
+    const svg = card.querySelector('svg');
+    const tip = card.querySelector('.tip');
+    if (!svg || !tip || !svg.getBoundingClientRect) return;
+    const marker = svg.querySelector(kind === 'split' ? '.g-band' : '.g-hover');
+    const move = (e) => {
+      const rect = svg.getBoundingClientRect();
+      if (!rect.width) return;
+      const px = ((e.clientX - rect.left) / rect.width) * chart.W;
+      const p = chart.hit(px);
+      if (!p) return;
+      const [cx, cy] = chart.pos(p);
+      if (kind === 'split') marker.setAttribute('x', (chart.L + p.k * chart.band).toFixed(1));
+      else { marker.setAttribute('cx', cx); marker.setAttribute('cy', cy); }
+      marker.setAttribute('visibility', 'visible');
+      tip.innerHTML = chart.tip(p);
+      const scale = rect.width / chart.W;
+      const cardRect = card.getBoundingClientRect();
+      tip.style.left = Math.min(Math.max(rect.left - cardRect.left + cx * scale, 70), cardRect.width - 70) + 'px';
+      tip.style.top = (rect.top - cardRect.top + cy * scale) + 'px';
+      tip.hidden = false;
+    };
+    const hide = () => { tip.hidden = true; marker.setAttribute('visibility', 'hidden'); };
+    svg.addEventListener('pointermove', move);
+    svg.addEventListener('pointerdown', move);
+    // Mouse: hide when the pointer leaves. Touch: keep the tooltip until the next tap somewhere else.
+    svg.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse') hide(); });
+    liveCharts.push({ svg, hide });
+  }
+  let liveCharts = [];
+  document.addEventListener('pointerdown', (e) => {
+    liveCharts.forEach((c) => { if (!c.svg.contains(e.target)) c.hide(); });
+  });
+
+  function renderCharts() {
+    const body = $('chart-body');
+    const gate = planGate(body);
+    if (!gate) { $('chart-sub').textContent = 'See your balance fall and where each payment goes.'; return; }
+    const { pl, s } = gate;
+    $('chart-sub').innerHTML = `${planSentence(pl)} <button type="button" class="link accent" data-goto="calc">Change</button>`;
+    // Inner width of a chart card (card padding is 20px, 16px on phones).
+    const pad = window.innerWidth <= 600 ? 32 : 40;
+    const width = Math.max(260, Math.round((body.clientWidth || 840) - pad));
+    lastChartWidth = body.clientWidth;
+    liveCharts = [];
+    const bal = balanceChart(pl, s, width);
+    const split = splitChart(pl, s, width);
+    body.innerHTML = `${summaryStats(pl, s)}
+      <div class="card chart-card" id="card-balance">
+        <h3>Balance over time</h3>
+        <div class="legend">
+          <span class="key"><span class="swatch dash"></span>Projected</span>
+          <span class="key"><span class="swatch line" style="background:var(--text)"></span>Actual (your history)</span>
+        </div>
+        ${bal.svg}
+        <div class="tip" hidden></div>
+      </div>
+      <div class="card chart-card" id="card-split">
+        <h3>Where each ${split.yearly ? "year's payments go" : 'payment goes'}</h3>
+        <div class="legend">
+          <span class="key"><span class="swatch" style="background:var(--accent)"></span>Principal</span>
+          <span class="key"><span class="swatch" style="background:var(--interest)"></span>Interest</span>
+        </div>
+        ${split.svg}
+        <div class="tip" hidden></div>
+      </div>`;
+    wireChart($('card-balance'), bal, 'balance');
+    wireChart($('card-split'), split, 'split');
+  }
+
+  /* ================= Calculator tab ================= */
+  const calcFields = {
+    balance: $('calc-balance'),
+    rate: $('calc-rate'),
+    payment: $('calc-payment'),
+    first: $('calc-first')
+  };
+
+  function renderCalc() {
+    const p = state.plan;
+    const pl = planNow();
+    const set = (el, v) => { if (document.activeElement !== el) { el.value = v; el.removeAttribute('aria-invalid'); } };
+    set(calcFields.balance, plainMoney(remaining()));
+    set(calcFields.rate, p.apr === null ? '' : String(p.apr));
+    set(calcFields.payment, p.payment === null ? '' : plainMoney(p.payment));
+    set(calcFields.first, pl.first);
+    renderCalcNotes();
+    renderCalcResults();
+  }
+
+  function renderCalcNotes() {
+    const pl = planNow();
+    $('calc-balance-note').textContent = calcDraft !== null && calcDraft !== remaining()
+      ? 'Press Enter or tap away to update your tracker.'
+      : 'Same balance as your tracker. Change it here and the tracker updates too.';
+    const interestOnly = pl.apr !== null && pl.balance > 0 ? Math.round(pl.balance * (pl.apr / 100 / 12)) : null;
+    $('calc-payment-note').textContent = interestOnly !== null && interestOnly > 0 ? `Interest alone is about ${fmt(interestOnly)}/mo.` : '';
+  }
+
+  function renderCalcResults() {
+    const out = $('calc-results');
+    const pl = planNow();
+    if (pl.balance === 0) {
+      out.innerHTML = `<div class="card center"><p>Your balance is $0.00, so there's nothing to calculate. Enter a new balance above if you've taken on more debt.</p></div>`;
+      return;
+    }
+    if (!pl.ready) {
+      out.innerHTML = `<div class="card center"><p>Enter your interest rate and monthly payment to see how each payment splits between interest and principal, and when you'll be debt free.</p><button type="button" class="btn btn-quiet" data-goto="tracker">Skip for now: go to the tracker</button></div>`;
+      return;
+    }
+    const s = amortize(pl.balance, pl.apr, pl.payment);
+    if (s.reason === 'low') {
+      out.innerHTML = `<div class="card center warn"><p>Interest is about ${fmt(s.firstInterest)} a month, so ${fmt(pl.payment)} never pays this down. Try at least ${fmt(s.minPayment)}.</p></div>`;
+      return;
+    }
+    const r = s.rows[0];
+    const n = s.rows.length;
+    const last = s.rows[n - 1];
+    const totalPrincipal = s.rows.reduce((t, x) => t + x.principal, 0);
+    out.innerHTML = `<div class="result-grid">
+      <div class="card">
+        <h3>Next payment · ${monthLabel(pl.first, 0)}</h3>
+        <dl class="breakdown">
+          <dt>Start balance</dt><dd>${fmt(r.start)}</dd>
+          <dt>Payment</dt><dd>${fmt(r.pay)}</dd>
+          <dt>Interest cost</dt><dd class="int">${fmt(r.interest)}</dd>
+          <dt>Principal payment</dt><dd class="prin">${fmt(r.principal)}</dd>
+          <dt>Final balance</dt><dd>${fmt(r.end)}</dd>
+        </dl>
+      </div>
+      <div>
+        <div class="stats">
+          <div class="stat"><p class="stat-label">Start balance</p><p class="stat-value">${fmt(pl.balance)}</p><p class="stat-sub">at ${fmtRate(pl.apr)} APR</p></div>
+          <div class="stat"><p class="stat-label">Total principal</p><p class="stat-value">${fmt(totalPrincipal)}</p><p class="stat-sub">${plural(n, 'payment')}</p></div>
+          <div class="stat hl"><p class="stat-label">Total interest cost</p><p class="stat-value">${fmt(s.totalInterest)}</p><p class="stat-sub">over ${duration(n)}</p></div>
+          <div class="stat"><p class="stat-label">Final balance</p><p class="stat-value">${fmt(last.end)}</p><p class="stat-sub">${s.ok ? `paid off ${monthLabel(pl.first, n - 1)}` : 'after 50 years'}</p></div>
+        </div>
+        <div class="goto-row">
+          <button type="button" class="link accent" data-goto="schedule">See the full schedule →</button>
+          <button type="button" class="link accent" data-goto="chart">See the charts →</button>
+          <button type="button" class="link accent" data-goto="tracker">Log a payment →</button>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  const calcHelp = {
+    balance: 'Enter a balance above $0, like 12500 or 12,500.00.',
+    rate: 'Enter a rate between 0 and 100, like 6.5.',
+    payment: 'Enter a monthly payment like 450.',
+    first: 'Pick a month, like 2026-11.'
+  };
+
+  function showCalcError() {
+    const bad = Object.keys(calcFields).find((k) => calcFields[k].getAttribute('aria-invalid') === 'true');
+    if (bad) say('calc-msg', calcHelp[bad], 'error');
+    else if ($('calc-msg').dataset.kind === 'error') say('calc-msg', '');
+  }
+
+  // Rate, payment and month save as you type.
+  function onCalcInput(field) {
+    const el = calcFields[field];
+    const v = el.value.trim();
+    let ok = true;
+    if (field === 'rate') {
+      const r = v === '' ? null : parseRate(v);
+      if (v !== '' && r === null) ok = false; else state.plan.apr = r;
+    } else if (field === 'payment') {
+      const c = v === '' ? null : parseMoney(v);
+      if (v !== '' && c === null) ok = false; else state.plan.payment = c;
+    } else if (field === 'first') {
+      const m = v === '' ? null : parseMonth(v);
+      if (v !== '' && m === null) ok = false; else state.plan.first = m;
+    }
+    if (ok) el.removeAttribute('aria-invalid'); else el.setAttribute('aria-invalid', 'true');
+    showCalcError();
+    save();
+    renderCalcNotes();
+    renderCalcResults();
+    renderPlanLine();
+  }
+
+  // The balance previews as you type, then updates the tracker when you press Enter or leave the field.
+  function onCalcBalanceInput() {
+    const el = calcFields.balance;
+    const c = parseMoney(el.value);
+    if (c === null && el.value.trim() !== '') el.setAttribute('aria-invalid', 'true');
+    else el.removeAttribute('aria-invalid');
+    calcDraft = c;
+    showCalcError();
+    renderCalcNotes();
+    renderCalcResults();
+  }
+
+  function commitCalcBalance() {
+    const el = calcFields.balance;
+    const c = parseMoney(el.value);
+    calcDraft = null;
+    el.removeAttribute('aria-invalid');
+    if (c === null || c === remaining()) {
+      el.value = plainMoney(remaining()); // invalid or unchanged: put the real balance back
+      showCalcError();
+      renderCalcNotes();
+      renderCalcResults();
+      return;
+    }
+    if (state.payments.length === 0) {
+      // Nothing logged yet, so this is simply a corrected starting amount.
+      state.start = c;
+      save();
+      render();
+    } else {
+      setBalance(c); // logged in history as an adjustment, like "Set current balance"
+    }
+    el.value = plainMoney(remaining());
+    say('calc-msg', `Tracker updated: your balance is now ${fmt(remaining())}.`, 'ok');
+    announce(`Balance updated to ${fmt(remaining())}.`);
+    renderCalcNotes();
+    renderCalcResults();
+    renderPlanLine();
+  }
+
+  ['rate', 'payment', 'first'].forEach((k) => {
+    calcFields[k].addEventListener('input', () => onCalcInput(k));
+    calcFields[k].addEventListener('change', () => onCalcInput(k));
+  });
+  calcFields.balance.addEventListener('input', onCalcBalanceInput);
+  calcFields.balance.addEventListener('blur', commitCalcBalance);
+  calcFields.balance.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); commitCalcBalance(); }
+  });
+  // Enter in the other fields just confirms; it never reloads the page.
+  $('calc-form').addEventListener('submit', (e) => e.preventDefault());
+
+  /* ================= Wiring ================= */
+  $('setup-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const input = $('setup-amount');
+    const cents = parseMoney(input.value);
+    if (cents === null) {
+      input.setAttribute('aria-invalid', 'true');
+      say('setup-msg', 'Enter your total, like 12500 or 12,500.00.', 'error');
+      input.focus();
+      return;
+    }
+    input.removeAttribute('aria-invalid');
+    input.value = '';
+    say('setup-msg', '');
+    if (state.sound) sound.unlock(); // lets the first payment's ding play right away
+    state = { start: cents, startedAt: Date.now(), payments: [], sound: state.sound, plan: blankPlan() };
+    save();
+    // Land on the calculator so the loan terms get set up right away.
+    tab = 'tracker';
+    render();
+    showTab('calc');
+    say('calc-msg', `Tracking ${fmt(cents)}. Now add your interest rate and monthly payment.`, 'ok');
+    announce(`Tracking ${fmt(cents)}. Next, add your interest rate and monthly payment.`);
+    calcFields.rate.focus({ preventScroll: true });
+  });
+
+  $('pay-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const input = $('pay-amount');
+    const cents = parseMoney(input.value);
+    if (cents === null) {
+      input.setAttribute('aria-invalid', 'true');
+      say('pay-msg', 'Enter a payment amount, like 250 or 99.95.', 'error');
+      input.focus();
+      return;
+    }
+    input.removeAttribute('aria-invalid');
+    input.value = '';
+    logPayment(cents);
+  });
+
+  $('celebrate').addEventListener('click', () => { nudge('pop'); celebrate(); });
+
+  $('sound-toggle').addEventListener('click', () => {
+    state.sound = !state.sound;
+    save();
+    $('sound-toggle').textContent = state.sound ? 'Sound: on' : 'Sound: off';
+    if (state.sound) sound.ding(); // a quick preview
+  });
+
+  // Set current balance
+  const adjustDialog = $('adjust-dialog');
+  document.querySelectorAll('[data-adjust]').forEach((b) => b.addEventListener('click', () => {
+    const input = $('adjust-amount');
+    input.value = plainMoney(remaining());
+    input.removeAttribute('aria-invalid');
+    say('adjust-msg', '');
+    openDialog(adjustDialog);
+    input.focus();
+    input.select();
+  }));
+
+  $('adjust-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const input = $('adjust-amount');
+    const cents = parseMoney(input.value, true);
+    if (cents === null) {
+      input.setAttribute('aria-invalid', 'true');
+      say('adjust-msg', 'Enter your balance, like 10950.12. Use 0 if it\'s paid off.', 'error');
+      return;
+    }
+    closeDialog(adjustDialog);
+    const result = setBalance(cents);
+    if (!result.changed) { say('pay-msg', `Balance is already ${fmt(cents)}.`, 'ok'); return; }
+    const back = result.wasDone && cents > 0 ? ' Back to tracking.' : '';
+    say('pay-msg', `Balance updated to ${fmt(cents)} (${fmtSigned(result.delta)}).${back}`, 'ok');
+    announce(`Balance updated to ${fmt(cents)}.`);
+  });
+
+  // Edit starting amount
+  const editDialog = $('edit-dialog');
+  $('edit-start').addEventListener('click', () => {
+    const input = $('edit-amount');
+    input.value = plainMoney(state.start);
+    input.removeAttribute('aria-invalid');
+    say('edit-msg', '');
+    openDialog(editDialog);
+    input.focus();
+    input.select();
+  });
+
+  $('edit-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const input = $('edit-amount');
+    const cents = parseMoney(input.value);
+    const paid = paidTotal();
+    if (cents === null) {
+      input.setAttribute('aria-invalid', 'true');
+      say('edit-msg', 'Enter an amount like 12500 or 12,500.00.', 'error');
+      return;
+    }
+    if (cents + adjTotal() < paid) {
+      input.setAttribute('aria-invalid', 'true');
+      say('edit-msg', `You've already paid ${fmt(paid)}, so the total can't be lower than that.`, 'error');
+      return;
+    }
+    const wasLeft = remaining();
+    state.start = cents;
+    save();
+    closeDialog(editDialog);
+    render({ animate: true });
+    const left = remaining();
+    if (wasLeft > 0 && left === 0) {
+      nudge('pop');
+      celebrate();
+    }
+    say('pay-msg', `Starting amount updated to ${fmt(cents)}.`, 'ok');
+    announce(`Starting amount is now ${fmt(cents)}. ${fmt(left)} left to pay.`);
+  });
+
+  // Start over
+  const resetDialog = $('reset-dialog');
+  $('reset').addEventListener('click', () => openDialog(resetDialog));
+  $('new-goal').addEventListener('click', () => openDialog(resetDialog));
+  $('reset-confirm').addEventListener('click', () => {
+    closeDialog(resetDialog);
+    confetti.stop();
+    state = blank(state.sound);
+    save();
+    say('pay-msg', '');
+    tab = 'tracker';
+    setTabUI();
+    render();
+    $('setup-amount').focus();
+  });
+
+  // Dialog helpers (with a fallback for older browsers)
+  function openDialog(d) {
+    if (typeof d.showModal === 'function') { if (!d.open) d.showModal(); }
+    else d.setAttribute('open', '');
+  }
+  function closeDialog(d) {
+    if (typeof d.close === 'function') d.close();
+    else d.removeAttribute('open');
+  }
+  document.querySelectorAll('dialog').forEach((d) => {
+    d.addEventListener('click', (e) => { if (e.target === d) closeDialog(d); }); // click outside to close
+    d.querySelectorAll('[data-close]').forEach((b) => b.addEventListener('click', () => closeDialog(d)));
+  });
+
+  // Clear an error as soon as typing starts again
+  [['setup-amount', 'setup-msg'], ['pay-amount', 'pay-msg'], ['edit-amount', 'edit-msg'], ['adjust-amount', 'adjust-msg']].forEach(([inputId, msgId]) => {
+    $(inputId).addEventListener('input', (e) => {
+      if (e.target.getAttribute('aria-invalid') === 'true') {
+        e.target.removeAttribute('aria-invalid');
+        say(msgId, '');
+      }
+    });
+  });
+
+  // Keep several open tabs in sync
+  window.addEventListener('storage', (e) => {
+    if (e.key !== KEY) return;
+    state = load();
+    render();
+  });
+
+  // Re-fit the big number and redraw charts when the window size changes (e.g. rotating a phone).
+  let resizeTimer = 0;
+  let lastChartWidth = 0;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      confetti.resize();
+      if ($('app').hidden) return;
+      if (tab === 'tracker') fitBig();
+      if (tab === 'chart' && Math.abs($('chart-body').clientWidth - lastChartWidth) > 4) renderCharts();
+    }, 120);
+  });
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(() => { if (!$('app').hidden && tab === 'tracker') fitBig(); });
+  }
+
+  /* ================= Start ================= */
+  // On a real website (like GitHub Pages), let phones install it from the home screen.
+  if (/^https?:$/.test(location.protocol)) {
+    const manifest = document.createElement('link');
+    manifest.rel = 'manifest';
+    manifest.href = 'manifest.webmanifest';
+    document.head.appendChild(manifest);
+  }
+  if (!store) $('storage-note').hidden = false;
+  setTabUI();
+  render();
+  if (finePointer) {
+    if (!$('setup').hidden) $('setup-amount').focus();
+    else if (tab === 'tracker' && !$('pay-form').hidden) $('pay-amount').focus();
+  }
+})();
+</script>
+</body>
+</html>
