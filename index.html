@@ -759,6 +759,8 @@
 
       <footer class="foot">
         <button type="button" id="sound-toggle" class="link">Sound: on</button>
+        <span aria-hidden="true" id="intro-sep">·</span>
+        <button type="button" id="intro-toggle" class="link">Startup sound: on</button>
         <span aria-hidden="true">·</span>
         <button type="button" class="link" data-adjust>Set current balance</button>
         <span aria-hidden="true">·</span>
@@ -972,7 +974,8 @@
 
   // The plan holds only the loan terms. The balance always comes from the tracker (one shared balance).
   const blankPlan = () => ({ apr: null, payment: null, first: null });
-  const blank = (sound = true) => ({ start: null, startedAt: null, payments: [], sound, plan: blankPlan() });
+  // sound = all sounds on/off; intro = the casino start-up jingle on/off
+  const blank = (sound = true, intro = true) => ({ start: null, startedAt: null, payments: [], sound, intro, plan: blankPlan() });
 
   function readPlan(p) {
     p = p || {};
@@ -1007,6 +1010,7 @@
         startedAt: validTime(Number(s.startedAt)) ? Number(s.startedAt) : null,
         payments: entries,
         sound: s.sound !== false,
+        intro: s.intro !== false,
         plan: readPlan(s.plan)
       };
     } catch (e) {
@@ -1072,22 +1076,30 @@
   const sound = (() => {
     let ac = null;
     let out = null;
+    let noise = null;     // half a second of white noise, reused for the slot-reel ticks
+    let introBus = null;  // the start-up jingle, kept so other sounds can cut it short
+    let buses = [];       // each sound gets its own volume control, so any of them can be faded out
 
+    function context() {
+      if (ac) return ac;
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      ac = new AC();
+      const comp = ac.createDynamicsCompressor();
+      comp.threshold.value = -16;
+      comp.knee.value = 20;
+      comp.ratio.value = 4;
+      out = ac.createGain();
+      out.gain.value = 0.9;
+      out.connect(comp);
+      comp.connect(ac.destination);
+      return ac;
+    }
+
+    // Create the audio engine if needed and ask the browser to start it.
     function ready() {
       try {
-        if (!ac) {
-          const AC = window.AudioContext || window.webkitAudioContext;
-          if (!AC) return false;
-          ac = new AC();
-          const comp = ac.createDynamicsCompressor();
-          comp.threshold.value = -16;
-          comp.knee.value = 20;
-          comp.ratio.value = 4;
-          out = ac.createGain();
-          out.gain.value = 0.9;
-          out.connect(comp);
-          comp.connect(ac.destination);
-        }
+        if (!context()) return false;
         if (ac.state === 'suspended') {
           const resumed = ac.resume();
           if (resumed && resumed.catch) resumed.catch(() => {});
@@ -1098,7 +1110,34 @@
       }
     }
 
-    function tone(freq, at, dur, vol, type = 'sine', attack = 0.006) {
+    function bus(start, length) {
+      const now = ac.currentTime;
+      buses = buses.filter((b) => b.end > now - 1);
+      const g = ac.createGain();
+      g.connect(out);
+      const b = { g, end: start + length };
+      buses.push(b);
+      return b;
+    }
+
+    function fade(b) {
+      const now = ac.currentTime;
+      b.g.gain.cancelScheduledValues(now);
+      b.g.gain.setTargetAtTime(0, now, 0.03);
+      b.end = Math.min(b.end, now + 0.3);
+    }
+
+    function cutIntro() {
+      if (introBus) { fade(introBus); introBus = null; }
+    }
+
+    function stopAll() {
+      if (!ac) return;
+      buses.forEach(fade);
+      introBus = null;
+    }
+
+    function tone(dest, freq, at, dur, vol, type = 'sine', attack = 0.006) {
       const osc = ac.createOscillator();
       const amp = ac.createGain();
       osc.type = type;
@@ -1107,40 +1146,162 @@
       amp.gain.exponentialRampToValueAtTime(vol, at + attack);
       amp.gain.exponentialRampToValueAtTime(0.0001, at + dur);
       osc.connect(amp);
-      amp.connect(out);
+      amp.connect(dest);
       osc.start(at);
       osc.stop(at + dur + 0.05);
+    }
+
+    // A struck bell: the note plus two quickly fading overtones (skipped if they'd be too high to hear).
+    function bell(dest, freq, at, dur, vol) {
+      tone(dest, freq, at, dur, vol, 'sine', 0.002);
+      if (freq * 2.76 < 15000) tone(dest, freq * 2.76, at, dur * 0.45, vol * 0.3, 'sine', 0.002);
+      if (freq * 5.4 < 15000) tone(dest, freq * 5.4, at, dur * 0.22, vol * 0.12, 'sine', 0.002);
+    }
+
+    function noiseBuffer() {
+      if (!noise) {
+        const len = Math.floor(ac.sampleRate * 0.5);
+        noise = ac.createBuffer(1, len, ac.sampleRate);
+        const data = noise.getChannelData(0);
+        for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
+      }
+      return noise;
+    }
+
+    // One tick of a spinning slot reel: a tiny burst of filtered noise.
+    function tick(dest, at, freq, vol) {
+      const src = ac.createBufferSource();
+      src.buffer = noiseBuffer();
+      const band = ac.createBiquadFilter();
+      band.type = 'bandpass';
+      band.frequency.value = freq;
+      band.Q.value = 6;
+      const amp = ac.createGain();
+      amp.gain.setValueAtTime(0.0001, at);
+      amp.gain.exponentialRampToValueAtTime(vol, at + 0.002);
+      amp.gain.exponentialRampToValueAtTime(0.0001, at + 0.045);
+      src.connect(band);
+      band.connect(amp);
+      amp.connect(dest);
+      src.start(at, Math.random() * 0.4, 0.06);
+    }
+
+    // A rising rush of air under the reels.
+    function whoosh(dest, at, dur, vol) {
+      const src = ac.createBufferSource();
+      src.buffer = noiseBuffer();
+      src.loop = true;
+      const band = ac.createBiquadFilter();
+      band.type = 'bandpass';
+      band.Q.value = 1.2;
+      band.frequency.setValueAtTime(350, at);
+      band.frequency.exponentialRampToValueAtTime(3200, at + dur);
+      const amp = ac.createGain();
+      amp.gain.setValueAtTime(0.0001, at);
+      amp.gain.exponentialRampToValueAtTime(vol, at + dur * 0.75);
+      amp.gain.exponentialRampToValueAtTime(0.0001, at + dur);
+      src.connect(band);
+      band.connect(amp);
+      amp.connect(dest);
+      src.start(at);
+      src.stop(at + dur + 0.05);
+    }
+
+    // Casino-style start-up, about 2.8 seconds: the reels spin up, a bright run up the scale,
+    // ding-ding-ding, then a big chord with sparkles on top.
+    function intro() {
+      if (!ready()) return;
+      cutIntro();
+      const t = ac.currentTime + 0.06;
+      const b = bus(t, 3);
+      introBus = b;
+      const mix = b.g;
+      const soft = ac.createBiquadFilter(); // rounds off the buzzy square waves
+      soft.type = 'lowpass';
+      soft.frequency.value = 3400;
+      soft.connect(mix);
+
+      // 1. Reels spinning up: faster and faster ticks over a rising whoosh (first half second)
+      whoosh(mix, t, 0.55, 0.05);
+      let at = t;
+      for (let i = 0; i < 12; i++) {
+        tick(mix, at, 1600 + i * 140, 0.3);
+        at += 0.062 - i * 0.0035;
+      }
+      // 2. A bright run up the scale, C5 to C7
+      const run = [523.25, 659.25, 783.99, 1046.5, 1318.51, 1567.98, 2093.0];
+      const r = t + 0.52;
+      run.forEach((f, i) => {
+        tone(soft, f, r + i * 0.055, 0.24, 0.09, 'square', 0.004);
+        tone(mix, f * 2, r + i * 0.055, 0.16, 0.03, 'sine', 0.003);
+      });
+      // 3. Ding-ding-ding
+      const d = r + run.length * 0.055 + 0.06;
+      [0, 0.13, 0.26].forEach((o, i) => bell(mix, 1567.98, d + o, i === 2 ? 0.9 : 0.32, 0.13));
+      // 4. Big finish: a full C-major chord with sparkles
+      const c = d + 0.42;
+      tone(mix, 130.81, c, 1.3, 0.11, 'sine', 0.02);
+      tone(mix, 261.63, c, 1.3, 0.09, 'triangle', 0.02);
+      [523.25, 659.25, 783.99, 1046.5].forEach((f) => tone(soft, f, c, 1.25, 0.05, 'square', 0.02));
+      const sparkle = [2093.0, 2349.32, 2637.02, 3135.96, 3520.0, 4186.01];
+      for (let i = 0; i < 14; i++) {
+        const f = sparkle[Math.floor(Math.random() * sparkle.length)];
+        bell(mix, f, c + 0.08 + i * 0.075 + Math.random() * 0.03, 0.28, 0.022 + Math.random() * 0.018);
+      }
+    }
+
+    // At launch, schedule the jingle. Browsers hold sound back until the person interacts with the page,
+    // so if this one does, the jingle waits and plays on the first tap, click or key press.
+    // If nobody interacts within a minute, it's dropped so it never plays out of the blue.
+    function introOnLaunch() {
+      if (!context()) return;
+      intro();
+      if (ac.state === 'running') return;
+      const events = ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown'];
+      const unlock = () => ready();
+      const done = () => events.forEach((ev) => window.removeEventListener(ev, unlock, true));
+      events.forEach((ev) => window.addEventListener(ev, unlock, true));
+      if (ac.addEventListener) ac.addEventListener('statechange', () => { if (ac.state === 'running') done(); });
+      setTimeout(() => { if (ac.state !== 'running') { cutIntro(); done(); } }, 60000);
     }
 
     // A soft two-note chime (A5 → E6) with a faint shimmer on top.
     function ding() {
       if (!ready()) return;
+      cutIntro(); // the payment's own sound takes over from the start-up jingle
       const t = ac.currentTime + 0.01;
-      tone(880.0, t, 0.2, 0.15, 'triangle');
-      tone(1318.51, t + 0.09, 1.2, 0.2);
-      tone(2637.02, t + 0.09, 0.5, 0.03);
+      const mix = bus(t, 1.4).g;
+      tone(mix, 880.0, t, 0.2, 0.15, 'triangle');
+      tone(mix, 1318.51, t + 0.09, 1.2, 0.2);
+      tone(mix, 2637.02, t + 0.09, 0.5, 0.03);
     }
 
     // A rising arpeggio into a warm held chord, with a few twinkles.
     function fanfare() {
       if (!ready()) return;
+      cutIntro();
       const t = ac.currentTime + 0.02;
+      const mix = bus(t, 3.4).g;
       const arp = [523.25, 659.25, 783.99, 1046.5, 1318.51];
-      arp.forEach((f, i) => tone(f, t + i * 0.09, 0.55, 0.15, 'triangle'));
+      arp.forEach((f, i) => tone(mix, f, t + i * 0.09, 0.55, 0.15, 'triangle'));
       const c = t + arp.length * 0.09 + 0.04;
-      tone(130.81, c, 2.6, 0.12);
-      [261.63, 523.25, 659.25, 783.99, 1046.5].forEach((f) => tone(f, c, 2.6, 0.075, 'triangle', 0.03));
+      tone(mix, 130.81, c, 2.6, 0.12);
+      [261.63, 523.25, 659.25, 783.99, 1046.5].forEach((f) => tone(mix, f, c, 2.6, 0.075, 'triangle', 0.03));
       const twinkles = [2093.0, 2349.32, 2637.02, 3135.96, 3520.0];
       for (let i = 0; i < 12; i++) {
         const f = twinkles[Math.floor(Math.random() * twinkles.length)];
-        tone(f, c + 0.15 + i * 0.11 + Math.random() * 0.04, 0.3, 0.025 + Math.random() * 0.02);
+        tone(mix, f, c + 0.15 + i * 0.11 + Math.random() * 0.04, 0.3, 0.025 + Math.random() * 0.02);
       }
     }
 
+    const safe = (fn) => () => { try { fn(); } catch (e) { /* sound is a nice-to-have */ } };
     return {
       unlock: ready,
-      ding: () => { try { ding(); } catch (e) { /* sound is a nice-to-have */ } },
-      fanfare: () => { try { fanfare(); } catch (e) { /* sound is a nice-to-have */ } }
+      ding: safe(ding),
+      fanfare: safe(fanfare),
+      intro: safe(intro),
+      introOnLaunch: safe(introOnLaunch),
+      stopAll: safe(stopAll)
     };
   })();
 
@@ -1406,7 +1567,7 @@
     const ready = Number.isSafeInteger(state.start) && state.start > 0;
     $('setup').hidden = ready;
     $('app').hidden = !ready;
-    $('sound-toggle').textContent = state.sound ? 'Sound: on' : 'Sound: off';
+    renderSoundToggles();
     if (!ready) {
       document.body.classList.remove('is-done');
       document.title = 'Debt Tracker';
@@ -2082,7 +2243,7 @@
     input.value = '';
     say('setup-msg', '');
     if (state.sound) sound.unlock(); // lets the first payment's ding play right away
-    state = { start: cents, startedAt: Date.now(), payments: [], sound: state.sound, plan: blankPlan() };
+    state = { start: cents, startedAt: Date.now(), payments: [], sound: state.sound, intro: state.intro, plan: blankPlan() };
     save();
     // Land on the calculator so the loan terms get set up right away.
     tab = 'tracker';
@@ -2110,11 +2271,27 @@
 
   $('celebrate').addEventListener('click', () => { nudge('pop'); celebrate(); });
 
+  function renderSoundToggles() {
+    $('sound-toggle').textContent = state.sound ? 'Sound: on' : 'Sound: off';
+    $('intro-toggle').textContent = state.intro ? 'Startup sound: on' : 'Startup sound: off';
+    $('intro-toggle').hidden = !state.sound; // only matters while sound is on
+    $('intro-sep').hidden = !state.sound;
+  }
+
   $('sound-toggle').addEventListener('click', () => {
     state.sound = !state.sound;
     save();
-    $('sound-toggle').textContent = state.sound ? 'Sound: on' : 'Sound: off';
+    renderSoundToggles();
     if (state.sound) sound.ding(); // a quick preview
+    else sound.stopAll();          // silence anything still playing, like the start-up jingle
+  });
+
+  $('intro-toggle').addEventListener('click', () => {
+    state.intro = !state.intro;
+    save();
+    renderSoundToggles();
+    if (state.intro && state.sound) sound.intro(); // play it once so you know what it sounds like
+    else sound.stopAll();
   });
 
   // Set current balance
@@ -2194,7 +2371,7 @@
   $('reset-confirm').addEventListener('click', () => {
     closeDialog(resetDialog);
     confetti.stop();
-    state = blank(state.sound);
+    state = blank(state.sound, state.intro);
     save();
     say('pay-msg', '');
     tab = 'tracker';
@@ -2261,6 +2438,20 @@
   if (!store) $('storage-note').hidden = false;
   setTabUI();
   render();
+  // The casino start-up jingle (when sound and the start-up sound are both on).
+  // If the page opened in a background tab, wait until it's actually on screen.
+  if (state.sound && state.intro) {
+    if (document.visibilityState === 'hidden') {
+      const onVisible = () => {
+        if (document.visibilityState !== 'visible') return;
+        document.removeEventListener('visibilitychange', onVisible);
+        sound.introOnLaunch();
+      };
+      document.addEventListener('visibilitychange', onVisible);
+    } else {
+      sound.introOnLaunch();
+    }
+  }
   if (finePointer) {
     if (!$('setup').hidden) $('setup-amount').focus();
     else if (tab === 'tracker' && !$('pay-form').hidden) $('pay-amount').focus();

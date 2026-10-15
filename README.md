@@ -15,7 +15,7 @@ A calm, single-page web app for tracking paying off one total debt. No framework
 - **Log a payment:** type an amount and the total counts down
 - **Set your current balance:** enter the new balance and the difference is logged in your history
 - **History:** every payment and adjustment with its date; remove one logged by mistake (it asks first)
-- **Sound:** a soft chime on each payment (can be turned off)
+- **Sound:** a casino-style jingle when the app starts, a soft chime on each payment (both can be turned off in the footer)
 - **Zero celebration:** confetti and a bigger sound when you hit $0.00
 
 **Schedule:** a month-by-month payoff table showing start balance, payment, interest, principal and end balance, with totals and your debt-free date. On phones each month is shown as a card.
@@ -51,7 +51,7 @@ Your numbers never leave your device. Nothing is sent to a server. Data is store
 - Money is stored as whole cents to avoid rounding errors
 - Payoff math is standard monthly amortization (interest = balance × APR ÷ 12), assuming a fixed rate and no new charges
 - Charts are hand-drawn SVG, with no library
-- Sounds are made with the Web Audio API, so there are no audio files
+- Sounds are made with the Web Audio API, so there are no audio files. Browsers only allow sound after you interact with a page, so if the browser blocks it at launch, the start-up jingle plays on your first tap, click or key press instead
 - Confetti is drawn on a plain `<canvas>`, with no library
 - Respects `prefers-reduced-motion` and `prefers-color-scheme`
 
